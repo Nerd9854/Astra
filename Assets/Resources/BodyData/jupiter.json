@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 599,
+    "name": "Jupiter",
+    "body_type": "planet",
+    "parent": "Sun",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -253878209.3363155,
+        674701399.5129832,
+        295381719.3606943
+    ],
+    "velocity_km_s": [
+        -12.507616337146,
+        -3.45693147164991,
+        -1.177327613873146
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 1.267127641e+17,
+    "gm": null,
+    "radius": {
+        "mean_km": 69911.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

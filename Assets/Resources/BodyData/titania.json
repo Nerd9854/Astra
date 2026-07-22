@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 703,
+    "name": "Titania",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1477976920.972436,
+        2308986945.021588,
+        990139036.1321821
+    ],
+    "velocity_km_s": [
+        -7.798899970855212,
+        4.062692845091629,
+        -1.552755162685858
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 3.527e+21,
+    "gm": null,
+    "radius": {
+        "mean_km": 788.9
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

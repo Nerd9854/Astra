@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": null,
+    "name": "Kalyke",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -223645835.0347124,
+        674393289.1463069,
+        298275882.8289188
+    ],
+    "velocity_km_s": [
+        -12.5142484784572,
+        -4.742294566523216,
+        -2.21218410328729
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {
+        "mean_km": 2.5
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

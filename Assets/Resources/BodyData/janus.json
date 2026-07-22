@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 610,
+    "name": "Janus",
+    "body_type": "moon",
+    "parent": "Saturn",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1421715951.67977,
+        57507117.57754733,
+        -37532643.68100797
+    ],
+    "velocity_km_s": [
+        -12.3535752750838,
+        -1.7128203045592,
+        5.439718299571286
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 18.97,
+    "gm": null,
+    "radius": {
+        "mean_km": 89.5
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

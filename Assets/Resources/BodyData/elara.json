@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 507,
+    "name": "Elara",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -253871383.1828096,
+        686994949.041462,
+        301642020.2684939
+    ],
+    "velocity_km_s": [
+        -14.88211094746857,
+        -3.753035475798206,
+        0.1976630563557618
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 87.0,
+    "gm": null,
+    "radius": {
+        "mean_km": 43.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

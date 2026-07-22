@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 402,
+    "name": "Deimos",
+    "body_type": "moon",
+    "parent": "Mars",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        50501994.18380966,
+        -188891252.6454124,
+        -87977609.55411527
+    ],
+    "velocity_km_s": [
+        23.3938288821762,
+        7.776806392122086,
+        3.461375186356672
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 14.762,
+    "gm": null,
+    "radius": {
+        "mean_km": 6.2
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

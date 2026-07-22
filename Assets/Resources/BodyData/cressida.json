@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 709,
+    "name": "Cressida",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1477670999.555265,
+        2308984593.184818,
+        990399899.4145732
+    ],
+    "velocity_km_s": [
+        -2.433474717933329,
+        4.256591334074541,
+        -7.55615949201488
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 34.0,
+    "gm": null,
+    "radius": {
+        "mean_km": 39.8
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

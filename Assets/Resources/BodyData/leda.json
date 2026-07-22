@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 513,
+    "name": "Leda",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -262103298.8084494,
+        679388510.9433775,
+        294740717.7498994
+    ],
+    "velocity_km_s": [
+        -14.47794030286748,
+        -6.834803754735674,
+        -0.9832118424670577
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 56.8,
+    "gm": null,
+    "radius": {
+        "mean_km": 10.1
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

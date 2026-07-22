@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": null,
+    "name": "Farbauti",
+    "body_type": "moon",
+    "parent": "Saturn",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1441660013.031125,
+        45653628.15754759,
+        -45468722.62558985
+    ],
+    "velocity_km_s": [
+        -1.377024739760973,
+        8.273622855042841,
+        2.982268488487525
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {
+        "mean_km": 2.5
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

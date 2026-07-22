@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": null,
+    "name": "Loge",
+    "body_type": "moon",
+    "parent": "Saturn",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1407696791.102531,
+        42730792.44446088,
+        -40563077.32973726
+    ],
+    "velocity_km_s": [
+        -1.96923775691524,
+        9.678667203036966,
+        3.855884452629613
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {
+        "mean_km": 3.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

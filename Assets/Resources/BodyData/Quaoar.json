@@ -1,0 +1,33 @@
+{
+  "id": null,
+  "naif_id": 2050000,
+  "name": "Quaoar",
+  "body_type": "dwarf_planet",
+  "parent": "Sun",
+  "system": "Solar System",
+  "epoch": "2026-01-01T00:00:00Z",
+  "reference_frame": "J2000",
+  "origin": "Solar System Barycentre",
+  "position_km": [
+    -5854120336.11,
+    2551442101.99,
+    1110254112.44
+  ],
+  "velocity_km_s": [
+    -1.99512,
+    -4.11204,
+    0.99512
+  ],
+  "distance_from_sun_km": null,
+  "speed_km_s": null,
+  "gm": 93.0,
+  "radius": {
+    "mean_km": 560.0
+  },
+  "rotation": {},
+  "orbit": {},
+  "physical": {},
+  "sources": {
+    "state_vectors": "JPL Horizons API"
+  }
+}

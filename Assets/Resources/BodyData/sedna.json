@@ -1,0 +1,32 @@
+{
+    "id": null,
+    "naif_id": null,
+    "name": "Sedna",
+    "body_type": "dwarf_planet",
+    "parent": "Sun",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        5893430521.030985,
+        10768489642.63302,
+        1888435129.492467
+    ],
+    "velocity_km_s": [
+        -4.294124651326118,
+        0.8162161689531561,
+        0.7345109284462423
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {},
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

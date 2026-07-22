@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 524,
+    "name": "Aitne",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -230398462.9394664,
+        676344605.2169304,
+        295405147.6745756
+    ],
+    "velocity_km_s": [
+        -12.87699164103767,
+        -5.548644855880337,
+        -0.8167950048370194
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {
+        "mean_km": 1.5
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

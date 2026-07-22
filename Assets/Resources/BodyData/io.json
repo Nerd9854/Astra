@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 501,
+    "name": "Io",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -253507026.3728397,
+        674517499.5622468,
+        295299842.7122371
+    ],
+    "velocity_km_s": [
+        -4.195592326222561,
+        10.204800163686,
+        5.466749450047265
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 8.931938e+22,
+    "gm": null,
+    "radius": {
+        "mean_km": 1821.49
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

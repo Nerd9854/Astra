@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": null,
+    "name": "Hegemone",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -236642339.3173332,
+        649526309.3785778,
+        295165590.3798146
+    ],
+    "velocity_km_s": [
+        -13.87618630796154,
+        -4.154957031188803,
+        -2.037621690982149
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {
+        "mean_km": 1.5
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

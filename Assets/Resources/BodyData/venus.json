@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 299,
+    "name": "Venus",
+    "body_type": "planet",
+    "parent": "Sun",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        12836983.32887579,
+        -98936397.3942134,
+        -45325679.53985732
+    ],
+    "velocity_km_s": [
+        34.5351814114598,
+        4.583191517447297,
+        -0.1220738584301415
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 3.24858592e+14,
+    "gm": null,
+    "radius": {
+        "mean_km": 6051.8
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

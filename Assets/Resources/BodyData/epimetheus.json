@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 611,
+    "name": "Epimetheus",
+    "body_type": "moon",
+    "parent": "Saturn",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1421704881.06708,
+        57492741.18071689,
+        -37530230.45229055
+    ],
+    "velocity_km_s": [
+        -11.1156213119326,
+        -3.198695381874851,
+        5.393697980961357
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 52.64,
+    "gm": null,
+    "radius": {
+        "mean_km": 58.1
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

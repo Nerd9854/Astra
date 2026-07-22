@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 699,
+    "name": "Saturn",
+    "body_type": "planet",
+    "parent": "Sun",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1421819203.232436,
+        57395452.28147187,
+        -37533227.72650653
+    ],
+    "velocity_km_s": [
+        -0.7898651748040556,
+        8.89313727916294,
+        3.707923567606738
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 3.79405848418e+16,
+    "gm": null,
+    "radius": {
+        "mean_km": 58232.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

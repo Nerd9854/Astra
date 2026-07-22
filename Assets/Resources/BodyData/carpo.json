@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 517,
+    "name": "Carpo",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -236058946.532242,
+        673868627.0950061,
+        300831109.0207147
+    ],
+    "velocity_km_s": [
+        -13.42404522866052,
+        -6.15768256444771,
+        -1.216660261092039
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {
+        "mean_km": 1.5
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

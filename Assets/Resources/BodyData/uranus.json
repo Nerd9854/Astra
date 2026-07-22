@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 799,
+    "name": "Uranus",
+    "body_type": "planet",
+    "parent": "Sun",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1477614612.946379,
+        2309001609.747885,
+        990380425.4243255
+    ],
+    "velocity_km_s": [
+        -5.920365479337566,
+        2.841034760502334,
+        1.328277881270783
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 5.7945564e+15,
+    "gm": null,
+    "radius": {
+        "mean_km": 25362.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

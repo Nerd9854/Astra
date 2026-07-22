@@ -1,0 +1,32 @@
+{
+    "id": null,
+    "naif_id": null,
+    "name": "Makemake",
+    "body_type": "dwarf_planet",
+    "parent": "Sun",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -6879739607.890115,
+        -2679622432.193575,
+        2774703741.811549
+    ],
+    "velocity_km_s": [
+        0.3373297500466054,
+        -3.178592392797517,
+        -1.988932746462341
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {},
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

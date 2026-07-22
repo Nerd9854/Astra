@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 609,
+    "name": "Phoebe",
+    "body_type": "moon",
+    "parent": "Saturn",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1417457771.792429,
+        70209524.46524218,
+        -31413291.83291736
+    ],
+    "velocity_km_s": [
+        0.5541500983559215,
+        9.4885048025445,
+        3.77976378230286
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 82.92,
+    "gm": null,
+    "radius": {
+        "mean_km": 106.55
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

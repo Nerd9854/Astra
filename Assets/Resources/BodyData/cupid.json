@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 727,
+    "name": "Cupid",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1477566412.257995,
+        2308997143.887742,
+        990436546.2448343
+    ],
+    "velocity_km_s": [
+        0.4308231116225025,
+        -0.3851734971237843,
+        6.599229722449267
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 20.0,
+    "gm": null,
+    "radius": {
+        "mean_km": 9.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

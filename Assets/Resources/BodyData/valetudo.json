@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": null,
+    "name": "Valetudo",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -242584478.5118358,
+        660337763.7427309,
+        300373466.1297967
+    ],
+    "velocity_km_s": [
+        -10.85917690027402,
+        -1.544068750804845,
+        -0.6184339770978754
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {
+        "mean_km": 0.5
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

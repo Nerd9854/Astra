@@ -1,0 +1,32 @@
+{
+    "id": null,
+    "naif_id": 903,
+    "name": "Hydra",
+    "body_type": "moon",
+    "parent": "Pluto",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        2875986900.913229,
+        -3928582741.751997,
+        -2092455722.12462
+    ],
+    "velocity_km_s": [
+        4.800149502698207,
+        2.30394385663337,
+        -0.7136310823033389
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {},
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

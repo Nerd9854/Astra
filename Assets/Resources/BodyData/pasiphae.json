@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 508,
+    "name": "Pasiphae",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -228792351.2078924,
+        652139896.1722537,
+        300198293.1217343
+    ],
+    "velocity_km_s": [
+        -13.59544941685081,
+        -4.174141021582699,
+        -1.867766196437541
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 29.980000000000004,
+    "gm": null,
+    "radius": {
+        "mean_km": 28.9
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

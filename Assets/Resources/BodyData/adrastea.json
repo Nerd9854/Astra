@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 515,
+    "name": "Adrastea",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -253850286.5734264,
+        674814836.5425603,
+        295436248.7160161
+    ],
+    "velocity_km_s": [
+        -43.22195860133927,
+        2.875218822252746,
+        1.349074067014494
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 20.0,
+    "gm": null,
+    "radius": {
+        "mean_km": 8.2
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

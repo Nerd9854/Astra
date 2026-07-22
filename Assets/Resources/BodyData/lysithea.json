@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 510,
+    "name": "Lysithea",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -255802811.3997841,
+        666159537.7042557,
+        285443883.1752694
+    ],
+    "velocity_km_s": [
+        -9.723083148269295,
+        -4.218590613830455,
+        -1.154753828648206
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 63.0,
+    "gm": null,
+    "radius": {
+        "mean_km": 18.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

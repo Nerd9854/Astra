@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 710,
+    "name": "Desdemona",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1477662961.033712,
+        2308983046.831383,
+        990416431.5255523
+    ],
+    "velocity_km_s": [
+        -0.1096991521892337,
+        3.213849613581432,
+        -6.250482879257103
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 18.0,
+    "gm": null,
+    "radius": {
+        "mean_km": 32.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

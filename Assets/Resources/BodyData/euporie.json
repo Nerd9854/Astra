@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 519,
+    "name": "Euporie",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -240963077.5144108,
+        674545121.9549513,
+        298150849.9822231
+    ],
+    "velocity_km_s": [
+        -12.84764356871913,
+        -7.135751695341289,
+        -0.8117663870560379
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {
+        "mean_km": 1.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

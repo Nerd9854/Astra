@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 713,
+    "name": "Rosalind",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1477556797.289717,
+        2309023239.942764,
+        990347811.3560613
+    ],
+    "velocity_km_s": [
+        -10.70158798873764,
+        1.513146633466857,
+        8.981311248812702
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 25.0,
+    "gm": null,
+    "radius": {
+        "mean_km": 36.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

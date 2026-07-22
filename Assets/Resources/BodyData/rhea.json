@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 605,
+    "name": "Rhea",
+    "body_type": "moon",
+    "parent": "Saturn",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1421551617.824998,
+        56944798.67630789,
+        -37476168.75429753
+    ],
+    "velocity_km_s": [
+        6.48934237623806,
+        4.546501848793062,
+        3.445651450510329
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 2.306518e+21,
+    "gm": null,
+    "radius": {
+        "mean_km": 763.8
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

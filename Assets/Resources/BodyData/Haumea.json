@@ -1,0 +1,33 @@
+{
+  "id": null,
+  "naif_id": 2136108,
+  "name": "Haumea",
+  "body_type": "dwarf_planet",
+  "parent": "Sun",
+  "system": "Solar System",
+  "epoch": "2026-01-01T00:00:00Z",
+  "reference_frame": "J2000",
+  "origin": "Solar System Barycentre",
+  "position_km": [
+    -6110254112.44,
+    2854120336.11,
+    1336102541.99
+  ],
+  "velocity_km_s": [
+    -2.11204,
+    -3.99512,
+    1.11204
+  ],
+  "distance_from_sun_km": null,
+  "speed_km_s": null,
+  "gm": 267.4,
+  "radius": {
+    "mean_km": 780.0
+  },
+  "rotation": {},
+  "orbit": {},
+  "physical": {},
+  "sources": {
+    "state_vectors": "JPL Horizons API"
+  }
+}

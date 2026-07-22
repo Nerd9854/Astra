@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 706,
+    "name": "Cordelia",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1477598620.514254,
+        2308992329.131016,
+        990426611.3924216
+    ],
+    "velocity_km_s": [
+        4.055545159347318,
+        -0.166931960420813,
+        4.173510279288548
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 45.0,
+    "gm": null,
+    "radius": {
+        "mean_km": 20.1
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

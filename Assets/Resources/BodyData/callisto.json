@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 504,
+    "name": "Callisto",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -253867818.3595448,
+        676402016.6647651,
+        296183280.3601778
+    ],
+    "velocity_km_s": [
+        -20.72075855784654,
+        -3.31504914688507,
+        -1.232767831510055
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 1.075938e+23,
+    "gm": null,
+    "radius": {
+        "mean_km": 2410.3
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

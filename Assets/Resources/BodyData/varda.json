@@ -1,0 +1,32 @@
+{
+    "id": null,
+    "naif_id": null,
+    "name": "Varda",
+    "body_type": "dwarf_planet",
+    "parent": "Sun",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -107214087.4911285,
+        -6833683383.467839,
+        -238852697.3586987
+    ],
+    "velocity_km_s": [
+        4.372456124261682,
+        0.556035883000919,
+        0.1338418494748054
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {},
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

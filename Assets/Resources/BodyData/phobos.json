@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 401,
+    "name": "Phobos",
+    "body_type": "moon",
+    "parent": "Mars",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        50488502.27160542,
+        -188919778.3896339,
+        -87985560.03952749
+    ],
+    "velocity_km_s": [
+        26.28856994615103,
+        7.207437528664296,
+        1.574549672457231
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 10.659,
+    "gm": null,
+    "radius": {
+        "mean_km": 11.2667
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

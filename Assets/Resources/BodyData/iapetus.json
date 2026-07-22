@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 608,
+    "name": "Iapetus",
+    "body_type": "moon",
+    "parent": "Saturn",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1420250193.079045,
+        60493220.54397532,
+        -36648341.22246297
+    ],
+    "velocity_km_s": [
+        -3.676397455664948,
+        7.449028092972892,
+        4.015844724124785
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 1.805635e+21,
+    "gm": null,
+    "radius": {
+        "mean_km": 734.5
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

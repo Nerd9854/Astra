@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 526,
+    "name": "Isonoe",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -279396148.0677533,
+        660794595.5564634,
+        293132526.5691189
+    ],
+    "velocity_km_s": [
+        -13.4898898686715,
+        -2.419438611527653,
+        -0.2038131327263545
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {
+        "mean_km": 2.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

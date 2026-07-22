@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 506,
+    "name": "Himalia",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -248578100.2178201,
+        681255961.0353763,
+        300158047.7819693
+    ],
+    "velocity_km_s": [
+        -15.70294490527681,
+        -2.802234215864263,
+        0.9283202696866311
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 41.95,
+    "gm": null,
+    "radius": {
+        "mean_km": 69.8
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

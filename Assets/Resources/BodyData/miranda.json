@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 705,
+    "name": "Miranda",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1477727819.298787,
+        2308956326.933079,
+        990425231.1947373
+    ],
+    "velocity_km_s": [
+        -3.231670200576102,
+        3.52712218565581,
+        -4.746002380400461
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 65.92,
+    "gm": null,
+    "radius": {
+        "mean_km": 235.8
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

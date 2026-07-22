@@ -1,0 +1,32 @@
+{
+    "id": null,
+    "naif_id": 999,
+    "name": "Pluto",
+    "body_type": "dwarf_planet",
+    "parent": "Sun",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        2875995747.967938,
+        -3928583411.898222,
+        -2092518216.488585
+    ],
+    "velocity_km_s": [
+        4.724608857272093,
+        2.23361544864304,
+        -0.7118325238118415
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 9.755e+11,
+    "gm": null,
+    "radius": {"mean_km": 1188},
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 521,
+    "name": "Euanthe",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -234631219.2525947,
+        668205497.1968428,
+        285238362.7623867
+    ],
+    "velocity_km_s": [
+        -14.1401564637463,
+        -5.093242009038347,
+        -1.725356383281772
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {
+        "mean_km": 1.5
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

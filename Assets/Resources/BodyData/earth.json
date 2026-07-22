@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 399,
+    "name": "Earth",
+    "body_type": "planet",
+    "parent": "Sun",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -26531002.41556548,
+        132064399.5462592,
+        57268703.37495859
+    ],
+    "velocity_km_s": [
+        -29.77650610770464,
+        -4.950768712267514,
+        -2.146229769311948
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 3.98600435507e+14,
+    "gm": null,
+    "radius": {
+        "mean_km": 6371.0084
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 503,
+    "name": "Ganymede",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -252866332.9776355,
+        674385312.4603292,
+        295246339.9292232
+    ],
+    "velocity_km_s": [
+        -8.995410584856474,
+        5.823678369489224,
+        3.330853697160209
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 1.4818999999999999e+23,
+    "gm": null,
+    "radius": {
+        "mean_km": 2634.1
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

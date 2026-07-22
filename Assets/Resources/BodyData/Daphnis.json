@@ -1,0 +1,33 @@
+{
+  "id": null,
+  "naif_id": 635,
+  "name": "Daphnis",
+  "body_type": "moon",
+  "parent": "Saturn",
+  "system": "Solar System",
+  "epoch": "2026-01-01T00:00:00Z",
+  "reference_frame": "J2000",
+  "origin": "Solar System Barycentre",
+  "position_km": [
+    1338456112.551,
+    -522104551.442,
+    -255144210.991
+  ],
+  "velocity_km_s": [
+    4.11204,
+    11.44215,
+    4.99512
+  ],
+  "distance_from_sun_km": null,
+  "speed_km_s": null,
+  "gm": 0.000005,
+  "radius": {
+    "mean_km": 3.8
+  },
+  "rotation": {},
+  "orbit": {},
+  "physical": {},
+  "sources": {
+    "state_vectors": "JPL Horizons API"
+  }
+}

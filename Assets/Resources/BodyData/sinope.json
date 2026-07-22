@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 509,
+    "name": "Sinope",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -240589989.7668739,
+        663833222.5531708,
+        297259779.3323151
+    ],
+    "velocity_km_s": [
+        -14.25684806094416,
+        -5.806311561194748,
+        -2.031502704945141
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 74.9,
+    "gm": null,
+    "radius": {
+        "mean_km": 19.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

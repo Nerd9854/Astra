@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 899,
+    "name": "Neptune",
+    "body_type": "planet",
+    "parent": "Sun",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        4468347034.088953,
+        112057868.8608133,
+        -65380294.52797508
+    ],
+    "velocity_km_s": [
+        -0.1294604296252467,
+        5.058695581723702,
+        2.073253369082255
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 6.83652710058e+15,
+    "gm": null,
+    "radius": {
+        "mean_km": 24622.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

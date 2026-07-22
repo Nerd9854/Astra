@@ -1,0 +1,32 @@
+{
+    "id": null,
+    "naif_id": null,
+    "name": "Ceres",
+    "body_type": "dwarf_planet",
+    "parent": "Sun",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        380714049.3914989,
+        201517743.759285,
+        17500721.82663298
+    ],
+    "velocity_km_s": [
+        -8.413799151207739,
+        12.7649882679124,
+        7.736297074411482
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 6.26325e+10,
+    "gm": null,
+    "radius": {"mean_km":470},
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

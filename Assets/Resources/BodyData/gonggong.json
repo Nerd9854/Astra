@@ -1,0 +1,32 @@
+{
+    "id": null,
+    "naif_id": null,
+    "name": "Gonggong",
+    "body_type": "dwarf_planet",
+    "parent": "Sun",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        12202432029.44296,
+        -5041458688.055846,
+        -2401147179.283704
+    ],
+    "velocity_km_s": [
+        1.780181648448437,
+        0.8178587741160913,
+        1.649953701637035
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {},
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

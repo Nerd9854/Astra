@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 601,
+    "name": "Mimas",
+    "body_type": "moon",
+    "parent": "Saturn",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1421675392.795987,
+        57511490.45615027,
+        -37532033.82977515
+    ],
+    "velocity_km_s": [
+        -9.939347937920406,
+        -2.024260260193063,
+        5.637110155442318
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 37.492999999999995,
+    "gm": null,
+    "radius": {
+        "mean_km": 198.2
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

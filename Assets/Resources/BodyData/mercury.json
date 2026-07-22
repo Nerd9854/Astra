@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 199,
+    "name": "Mercury",
+    "body_type": "planet",
+    "parent": "Sun",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -32652520.87416521,
+        -56116990.28397373,
+        -26542575.68507895
+    ],
+    "velocity_km_s": [
+        33.31154717745245,
+        -16.77025919755248,
+        -12.41014805980544
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 2.2031868551e+13,
+    "gm": null,
+    "radius": {
+        "mean_km": 2439.7
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

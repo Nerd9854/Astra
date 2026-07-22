@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 10,
+    "name": "Sun",
+    "body_type": "star",
+    "parent": null,
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -458863.9674035421,
+        -767304.103760174,
+        -311195.5872581376
+    ],
+    "velocity_km_s": [
+        0.01242505794360611,
+        0.0003760600763841905,
+        -9.339934521605677e-05
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 1.32712440041279419e+20,
+    "gm": null,
+    "radius": {
+        "mean_km": 695700.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

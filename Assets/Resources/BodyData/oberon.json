@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 704,
+    "name": "Oberon",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1477904282.825861,
+        2308808559.687534,
+        990847639.799093
+    ],
+    "velocity_km_s": [
+        -3.266026138672093,
+        2.714815643822019,
+        -0.3746024260927316
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 3.014e+21,
+    "gm": null,
+    "radius": {
+        "mean_km": 761.4
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

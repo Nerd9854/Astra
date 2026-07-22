@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 511,
+    "name": "Carme",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -267014218.0114065,
+        652453770.0687954,
+        283588850.496316
+    ],
+    "velocity_km_s": [
+        -14.12315029169515,
+        -2.977174126619753,
+        -0.3833518156620128
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 13.18,
+    "gm": null,
+    "radius": {
+        "mean_km": 23.35
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 701,
+    "name": "Ariel",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1477788153.257023,
+        2308946607.000841,
+        990437893.8857834
+    ],
+    "velocity_km_s": [
+        -3.945790751565173,
+        3.802588886120356,
+        -3.724736225942098
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 1.353e+21,
+    "gm": null,
+    "radius": {
+        "mean_km": 578.9
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

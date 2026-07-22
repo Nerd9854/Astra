@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 505,
+    "name": "Amalthea",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -254043408.9442033,
+        674636645.8267127,
+        295347173.0705752
+    ],
+    "velocity_km_s": [
+        -1.729806393258123,
+        -25.48592762325789,
+        -11.3808497653729
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 20.8,
+    "gm": null,
+    "radius": {
+        "mean_km": 83.45
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

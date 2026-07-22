@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 702,
+    "name": "Umbriel",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1477562132.647195,
+        2308942947.016325,
+        990633442.0108209
+    ],
+    "velocity_km_s": [
+        -1.436768113959857,
+        1.653718940238282,
+        1.990381887097114
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 1.1719999999999999e+21,
+    "gm": null,
+    "radius": {
+        "mean_km": 584.7
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

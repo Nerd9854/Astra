@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 514,
+    "name": "Thebe",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -253689652.0944582,
+        674812998.2127377,
+        295433349.982696
+    ],
+    "velocity_km_s": [
+        -25.18806826951516,
+        14.54881669705563,
+        7.241291056214544
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 43.0,
+    "gm": null,
+    "radius": {
+        "mean_km": 49.3
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

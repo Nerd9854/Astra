@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 708,
+    "name": "Bianca",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1477585930.057009,
+        2309021868.945731,
+        990332877.1444116
+    ],
+    "velocity_km_s": [
+        -14.25340507719523,
+        3.66359121297741,
+        6.630320746249615
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 10.0,
+    "gm": null,
+    "radius": {
+        "mean_km": 25.7
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

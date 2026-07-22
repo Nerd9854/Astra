@@ -1,0 +1,32 @@
+{
+    "id": null,
+    "naif_id": 901,
+    "name": "Charon",
+    "body_type": "moon",
+    "parent": "Pluto",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        2876005910.740721,
+        -3928576193.954698,
+        -2092533335.434215
+    ],
+    "velocity_km_s": [
+        4.60842642204292,
+        2.104313299177345,
+        -0.851704017134308
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {},
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

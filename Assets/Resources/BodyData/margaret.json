@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 723,
+    "name": "Margaret",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1479475937.212469,
+        2301827033.294068,
+        966842057.8692507
+    ],
+    "velocity_km_s": [
+        -5.753680150672003,
+        2.940988618812042,
+        1.498460061379385
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {
+        "mean_km": 10.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

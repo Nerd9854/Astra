@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 724,
+    "name": "Ferdinand",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1466837448.228748,
+        2286931717.906029,
+        978893707.5191573
+    ],
+    "velocity_km_s": [
+        -6.280894938764556,
+        2.916882162362021,
+        1.440506055130192
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {
+        "mean_km": 6.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

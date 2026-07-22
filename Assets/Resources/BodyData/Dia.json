@@ -1,0 +1,33 @@
+{
+  "id": null,
+  "naif_id": 553,
+  "name": "Dia",
+  "body_type": "moon",
+  "parent": "Jupiter",
+  "system": "Solar System",
+  "epoch": "2026-01-01T00:00:00Z",
+  "reference_frame": "J2000",
+  "origin": "Solar System Barycentre",
+  "position_km": [
+    -588441203.441,
+    434110254.992,
+    199551404.113
+  ],
+  "velocity_km_s": [
+    -8.22514,
+    -8.33214,
+    -3.29541
+  ],
+  "distance_from_sun_km": null,
+  "speed_km_s": null,
+  "gm": 0.000006,
+  "radius": {
+    "mean_km": 2.0
+  },
+  "rotation": {},
+  "orbit": {},
+  "physical": {},
+  "sources": {
+    "state_vectors": "JPL Horizons API"
+  }
+}

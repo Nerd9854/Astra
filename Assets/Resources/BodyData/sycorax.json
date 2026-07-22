@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 717,
+    "name": "Sycorax",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1470311668.696228,
+        2311361788.912918,
+        995561608.7718066
+    ],
+    "velocity_km_s": [
+        -5.850739817152483,
+        3.62917759503926,
+        1.713845725813508
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {
+        "mean_km": 75.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

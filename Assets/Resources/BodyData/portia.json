@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 712,
+    "name": "Portia",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1477673562.570602,
+        2308993421.322606,
+        990351168.4208156
+    ],
+    "velocity_km_s": [
+        -9.446264483822588,
+        6.03995474858494,
+        -6.702326361789107
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 17.0,
+    "gm": null,
+    "radius": {
+        "mean_km": 67.6
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

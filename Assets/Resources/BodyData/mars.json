@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 499,
+    "name": "Mars",
+    "body_type": "planet",
+    "parent": "Sun",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        50491130.49487789,
+        -188911422.5997874,
+        -87982631.5107002
+    ],
+    "velocity_km_s": [
+        24.45957741742463,
+        7.385785743807314,
+        2.728029472587943
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 4.2828375816e+13,
+    "gm": null,
+    "radius": {
+        "mean_km": 3389.5
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

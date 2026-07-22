@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 512,
+    "name": "Ananke",
+    "body_type": "moon",
+    "parent": "Jupiter",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -237761021.1765643,
+        673602491.674448,
+        305460969.7588848
+    ],
+    "velocity_km_s": [
+        -12.19324087245274,
+        -5.780376187573253,
+        -2.453578632702882
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 38.199999999999996,
+    "gm": null,
+    "radius": {
+        "mean_km": 14.3
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

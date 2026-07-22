@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 301,
+    "name": "Moon",
+    "body_type": "moon",
+    "parent": "Earth",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        -26386676.68807356,
+        132353983.7038041,
+        57428862.29796027
+    ],
+    "velocity_km_s": [
+        -30.78082024537686,
+        -4.56685410214987,
+        -1.973694872363547
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 4.902800118e+12,
+    "gm": null,
+    "radius": {
+        "mean_km": 1737.4
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 716,
+    "name": "Caliban",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1484201880.808851,
+        2310460211.918841,
+        994083318.2914981
+    ],
+    "velocity_km_s": [
+        -5.470953022725641,
+        2.51081380965614,
+        0.7062547474854068
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": null,
+    "gm": null,
+    "radius": {
+        "mean_km": 36.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

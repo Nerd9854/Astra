@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 714,
+    "name": "Belinda",
+    "body_type": "moon",
+    "parent": "Uranus",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1477676728.469877,
+        2308977141.923396,
+        990415386.6603261
+    ],
+    "velocity_km_s": [
+        -1.397423075166166,
+        3.682290549354831,
+        -6.132705063663142
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 36.0,
+    "gm": null,
+    "radius": {
+        "mean_km": 45.0
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}

@@ -1,0 +1,34 @@
+{
+    "id": null,
+    "naif_id": 614,
+    "name": "Calypso",
+    "body_type": "moon",
+    "parent": "Saturn",
+    "system": "Solar System",
+    "epoch": "2026-01-01T00:00:00Z",
+    "reference_frame": "J2000",
+    "origin": "Sun",
+    "position_km": [
+        1421964812.385244,
+        57650492.28244002,
+        -37558278.7772145
+    ],
+    "velocity_km_s": [
+        -10.60795048443771,
+        14.5531880195698,
+        4.312109242651637
+    ],
+    "distance_from_sun_km": null,
+    "speed_km_s": null,
+    "mass_kg": 40.0,
+    "gm": null,
+    "radius": {
+        "mean_km": 10.7
+    },
+    "rotation": {},
+    "orbit": {},
+    "physical": {},
+    "sources": {
+        "state_vectors": "JPL Horizons API"
+    }
+}
