@@ -1,76 +1,85 @@
-using System.Collections;
-using System.Collections.Generic;
 using Unity.Mathematics;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.UIElements;
-using static UnityEditor.ShaderGraph.Internal.KeywordDependentCollection;
 
 public class BodyManager : MonoBehaviour
 {
     public CameraController cam;
-    public SceneManager sim;
+    public SceneManager SceneManager;
+    public PhysicsManager PhysicsManager;
+
+    public OrbitViewer OrbitViewer;
 
     public double cullingDist;
     public double cullingdistsq;
 
-    private void Start()
-    {
-        cullingdistsq = cullingDist * cullingDist;
-    }
+    private Body[] allBodyscripts;
+    private MeshRenderer[] allMeshRenderers;
+    private GameObject sun;
+
     public void bodyManagerInit()
     {
-        double scale = (double)sim.scale;
+        cullingdistsq = cullingDist * cullingDist;
 
-        foreach (GameObject body in sim.allBodys.Values)
+        double scale = (double)SceneManager.scale;
+
+        int numOfBodyes = SceneManager.allBodys.Values.Count;
+
+        allBodyscripts = new Body[numOfBodyes];
+        allMeshRenderers = new MeshRenderer[numOfBodyes];
+
+
+
+        int currIndex = 0;
+        foreach (GameObject body in SceneManager.allBodys.Values)
         {
             Body bodyscript = body.GetComponent<Body>();
             MeshRenderer renderer = body.GetComponent<MeshRenderer>();
+
+            allBodyscripts[currIndex] = bodyscript;
+            allMeshRenderers[currIndex] = renderer;
+
             double3 position = bodyscript.position;
 
             double3 gamepos = position / scale;
             bodyscript.UpdatePosition(convertToFloat(gamepos));
-            renderer.enabled = math.lengthsq(position) < cullingdistsq;
+            //renderer.enabled = math.lengthsq(position) < cullingdistsq;
+
+            if (bodyscript.name.Contains("SUN ("))
+            {
+                sun = body;
+            }
+
+            currIndex++;
         }
     }
 
-    // Update is called once per frame
-    void Update()
+    public void updateBodys()
     {
         double3 worldpos = cam.worldPos;
-        double scale = (double)sim.scale;
+        double scale = (double)SceneManager.scale;
 
-        foreach (GameObject body in sim.allBodys.Values)
+        int currIndex = 0;
+        foreach (GameObject body in SceneManager.allBodys.Values)
         {
-            Body bodyscript = body.GetComponent<Body>();
-            MeshRenderer renderer = body.GetComponent<MeshRenderer>();
+            Body bodyscript = allBodyscripts[currIndex];
+            MeshRenderer renderer = allMeshRenderers[currIndex];
 
-            double3 distance = bodyscript.position - worldpos;
+            double3 distance = PhysicsManager.fullObjData[currIndex].pos - worldpos;
 
-            if(math.lengthsq(distance) < cullingdistsq)
-            {
-                if (renderer.enabled == false) renderer.enabled = true;
+            double3 gamepos = (distance) / scale;
+            body.transform.position = (float3)(gamepos);
 
-                double3 gamepos = (distance) / scale;
-                bodyscript.UpdatePosition(convertToFloat(gamepos));
-                Debug.Log($"showing: {bodyscript.name}");
-            }
-            else
-            {
-                renderer.enabled = false;
-            }
-            //Vector3(-17.1270771, -93.4419937, -121.035278)
-            if (body.name.Contains("Sun ("))
-            {
-                Vector3 normalisedSunPos = convertToFloat(distance / scale); //convertToFloat(math.normalize(distance));
-                updateSunPos(normalisedSunPos);
-            }
+            //renderer.enabled = math.lengthsq(distance) < cullingdistsq;
+
+            currIndex++;
         }
+
+        updateSunPos(sun.transform.position);
     }
 
     private Vector3 convertToFloat(double3 gamepos)
     {
-        Vector3 gaemposfloat = new Vector3(
+        Vector3 gaemposfloat = new(
             (float)gamepos.x,
             (float)gamepos.y,
             (float)gamepos.z
@@ -83,5 +92,6 @@ public class BodyManager : MonoBehaviour
     private void updateSunPos(Vector3 sunPos)
     {
         Shader.SetGlobalVector(SunPositionID, sunPos);
+        OrbitViewer.updatePos(sunPos);
     }
 }

@@ -107,7 +107,7 @@ public class CameraController : MonoBehaviour
         lastRawRotation = transform.rotation;
     }
 
-    private void Update()
+    public void camUpdate()
     {
         if (movingToOrbit)
         {

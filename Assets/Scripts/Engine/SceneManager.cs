@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
+using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 
@@ -10,104 +12,109 @@ public class SceneManager : MonoBehaviour
     public EngineManager mainEngineManager;
     public PhysicsManager physicsManager;
     public TextAsset objecthierarchy;
+    public GameObject rings;
     public int timeScale = 10; // how fast the sim is spedup compared to normal time
     public bool paused = true; // is the simulation running or not? true=simulation is paused
     public int selectedObjectID = -1; //the ID of the currently selected object
     public int scale = 10000000; //this will never change 100000 meansevery unity unit is 100000km
-    public float temp;
 
     [Header("Bodys")]
     public Dictionary<int, GameObject> allBodys = new Dictionary<int, GameObject>();
     private int currID = 0;
 
-    public CameraController cam; //temp
+    public CameraController cam;
 
-    public void simulationInit()
+    public int simulationInit()
     {
-        /*objectnames names = JsonUtility.FromJson<objectnames>(objecthierarchy.text);
-
-        foreach (string _object in names.planets) bodyLoader(_object, "Planet", true);
-        foreach (string _object in names.dwarfPlanets) bodyLoader(_object, "Planet");
-        foreach (string _object in names.moons) bodyLoader(_object, "Moon");*/
-        bodyLoader("Sun", "Planet", true);
+        foreach (string name in mainEngineManager.bodylookup.Keys)
+        {
+            bodyLoader(name, "Planet", mainEngineManager.bodylookup[name]);
+        }
+        return(currID - 1);
     }
 
-    private void bodyLoader(string name, string type, bool temp=false)
+    private void bodyLoader(string name, string type, int index)
     {
-        ExtractedBodyData bodyData = extractDataFromPath(name);
+        BodyData bodyData = getData(name, index);
         GameObject prefab = mainEngineManager.prefabsLookup[type];
-        Material materal = mainEngineManager.materialLookup["Missing Texture"];
+        Vector3 radius = bodyData.worldRadius;
+        Material materal;
+        GameObject ringsGO;
 
-        if (temp) materal = mainEngineManager.materialLookup[name];
+        string[] splitname = name.Split("|");
+        if (splitname[0] == "UNKNOWN") name = splitname[1];
+        else name = splitname[0];
 
+        try { materal = mainEngineManager.materialLookup[name.Split("|")[0]]; }
+        catch (Exception e) { materal = mainEngineManager.materialLookup["Missing Texture".ToUpper()]; }
 
         allBodys.Add(currID, Instantiate(prefab, parent.transform));
         allBodys[currID].GetComponent<MeshRenderer>().material = materal;
         allBodys[currID].GetComponent<Body>().material = materal;
-        allBodys[currID].GetComponent<Body>().position = bodyData.Position;
-        allBodys[currID].GetComponent<Body>().velocity = bodyData.Velocity;
-        allBodys[currID].GetComponent<Body>().radius = bodyData.Radius;
-        allBodys[currID].GetComponent<Body>().mass = bodyData.Mass;
+        allBodys[currID].GetComponent<Body>().position = bodyData.initPos;
+        allBodys[currID].GetComponent<Body>().velocity = bodyData.initVel;
+        allBodys[currID].GetComponent<Body>().radius = bodyData.avgRad;
+        allBodys[currID].GetComponent<Body>().avgRadius = bodyData.avgRadScaled;
+        allBodys[currID].GetComponent<Body>().mass = bodyData.GM;
         allBodys[currID].GetComponent<Body>().id = currID;
         allBodys[currID].GetComponent<Body>().bodyName = name;
         allBodys[currID].GetComponent<Body>().cam = cam;
         allBodys[currID].GetComponent<Body>().scale = scale;
+        allBodys[currID].GetComponent<Body>().rotation = bodyData.rotationSpeed;
+        allBodys[currID].transform.rotation = bodyData.tilt;
         allBodys[currID].name = $"{name} ({currID})";
-        allBodys[currID].transform.localScale = new Vector3(bodyData.Radius, bodyData.Radius, bodyData.Radius);
+        allBodys[currID].transform.localScale = radius;
+
+        if (name == "SATURN")
+        {
+            ringsGO = Instantiate(rings, allBodys[currID].transform);
+            float v = Mathf.Min(radius.x, radius.y, radius.z) / 2;
+            Shader.SetGlobalFloat(Shader.PropertyToID("_SatRad"), v);
+        }
 
         currID++;
     }
 
-    [System.Serializable]
-    private class RawBodyData
+    private class BodyData
     {
-        public string parent;
-        public string origin;
-        public double[] position_km;
-        public double[] velocity_km_s;
-        public double mass_kg;
-        public RadiusData radius;
-    }
+        public double3 initPos;
+        public double3 initVel;
+        public double GM;
+        public double3 radius;
+        public Vector3 worldRadius;
+        public double avgRad;
+        public double avgRadScaled;
+        public quaternion tilt;
+        public double rotationSpeed;
 
-    [System.Serializable]
-    private class RadiusData {public float mean_km;}
-
-    public class ExtractedBodyData
-    {
-        public string Parent;
-        public string Origin;
-        public double3 Position;
-        public double3 Velocity;
-        public double Mass;
-        public float Radius;
-    }
-
-    private ExtractedBodyData extractDataFromPath(string name)
-    {
-        TextAsset jsonFile = Resources.Load<TextAsset>($"BodyData/{name}");
-
-        RawBodyData rawBodyData = JsonUtility.FromJson<RawBodyData>(jsonFile.text);
-
-        Resources.UnloadAsset(jsonFile);
-
-        ExtractedBodyData final = new ExtractedBodyData();
-        final.Parent = rawBodyData.parent;
-        final.Origin = rawBodyData.origin;
-        //final.Position = new double3(rawBodyData.position_km[0] / (double)scale, rawBodyData.position_km[1] / (double)scale, rawBodyData.position_km[2] / (double)scale);
-        //final.Velocity = new double3(rawBodyData.velocity_km_s[0] / (double)scale, rawBodyData.velocity_km_s[1] / (double)scale, rawBodyData.velocity_km_s[2] / (double)scale);
-        final.Position = new double3(rawBodyData.position_km[0], rawBodyData.position_km[1], rawBodyData.position_km[2]);
-        final.Velocity = new double3(rawBodyData.velocity_km_s[0], rawBodyData.velocity_km_s[1], rawBodyData.velocity_km_s[2]);
-
-        if (rawBodyData.mass_kg != null)
+        public void convertRad(int scale)
         {
-            final.Mass = rawBodyData.mass_kg;
+            double doubleScale = (double)scale;
+            double3 doubleWorldRadius = (radius * 2) / new double3(doubleScale, doubleScale, doubleScale);
+            worldRadius = math.float3(doubleWorldRadius);
+
+            avgRad = (radius[0] + radius[1] + radius[2]) / 3;
+            avgRadScaled = avgRad / scale;
         }
 
-        if (rawBodyData.radius != null)
+        public void convertToQuart(double4 quat)
         {
-            final.Radius = ((rawBodyData.radius.mean_km*2f)/((float)scale))*temp;
+            tilt = new quaternion((float4)quat);
+            Quaternion.Normalize(tilt);
         }
+    }
 
-        return final;
+    private BodyData getData(string name, int index)
+    {
+        BodyData data = new BodyData();
+        data.initPos = mainEngineManager.initalPos[index];
+        data.initVel = mainEngineManager.initalVel[index];
+        data.GM = mainEngineManager.GMValues[index];
+        data.radius = mainEngineManager.RadValues[index];
+        data.convertRad(scale);
+        data.convertToQuart(mainEngineManager.tiltValues[index]);
+        data.rotationSpeed = mainEngineManager.rotationSpeedValues[index];
+        return data;
     }
 }
+

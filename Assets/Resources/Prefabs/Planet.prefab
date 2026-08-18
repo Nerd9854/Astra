@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 6710828909825676386}
   - component: {fileID: 6710828909825676387}
   - component: {fileID: 6710828909825676396}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Planet
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -51,7 +51,7 @@ MeshRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6710828909825676397}
   m_Enabled: 1
-  m_CastShadows: 1
+  m_CastShadows: 0
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
   m_StaticShadowCaster: 0
@@ -114,6 +114,7 @@ MonoBehaviour:
   bodyName: 
   mass: 0
   radius: 0
+  avgRadius: 0
   position:
     x: 0
     y: 0
@@ -122,12 +123,19 @@ MonoBehaviour:
     x: 0
     y: 0
     z: 0
-  acceleration: 0
-  rotation: 0
+  acceleration:
+    x: 0
+    y: 0
+    z: 0
+  rotation:
+    x: 0
+    y: 0
+    z: 0
   mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
   material: {fileID: 2100000, guid: d91a24ea759530e448b3516182fc7551, type: 2}
   meshRenderer: {fileID: 6710828909825676386}
   meshFilter: {fileID: 6710828909825676385}
   scale: 0
+  shoingTrail: 0
   cam: {fileID: 0}
   showdebug: 0

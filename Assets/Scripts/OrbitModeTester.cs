@@ -4,6 +4,9 @@ using UnityEngine;
 public class OrbitModeTester : MonoBehaviour
 {
     public CameraController cameraController;
+    public EngineManager engineManager;
+    public SceneManager sceneManager;
+    public infoDisplay infoDisplay;
     public KeyCode activateKey = KeyCode.O;
     public GameObject orbittarget;
 
@@ -28,5 +31,13 @@ public class OrbitModeTester : MonoBehaviour
             cameraController.target.worldPosition = orbittarget.GetComponent<Body>().position;
             cameraController.EnterOrbitMode();
         }
+    }
+    public  void updateOrbit()
+    {
+        string gameObj = infoDisplay.target;
+        GameObject objToTarget = sceneManager.allBodys[engineManager.bodylookup[gameObj]];
+        cameraController.target.transform = objToTarget.transform;
+        cameraController.target.worldPosition = objToTarget.GetComponent<Body>().position;
+        cameraController.EnterOrbitMode();
     }
 }
