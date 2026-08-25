@@ -6,7 +6,6 @@ using Unity.Mathematics;
 using UnityEditor.PackageManager;
 using UnityEngine;
 
-
 public class PhysicsManager : MonoBehaviour
 {
     public EngineManager EngineManager;
@@ -175,8 +174,6 @@ public class PhysicsManager : MonoBehaviour
         }
 
         double[] newH = new double[numbOfObjects * 3];
-        double hPow = h * h * h * h * h * h * h;
-        int iter = 0;
         double maxa0 = 0;
         foreach (physicsObject obj in fullObjData) maxa0 = math.max(maxa0, math.cmax(math.abs(obj.a0)));
         maxa0 = math.max(maxa0, 1e-300);
@@ -185,21 +182,6 @@ public class PhysicsManager : MonoBehaviour
         {
             obj.pos = predictPos(obj, h);
             obj.vel = predictVel(obj, h);
-            /*
-            double3 b7s = obj.poly[6];
-            double errorEstx = math.max(math.abs(b7s.x) / maxa0, 1e-300);// * hPow, 1e-300);
-            double errorEsty = math.max(math.abs(b7s.y) / maxa0, 1e-300);// * hPow, 1e-300);
-            double errorEstz = math.max(math.abs(b7s.z) / maxa0, 1e-300);// * hPow, 1e-300);
-
-            newH[iter]     = h * math.pow((tol / errorEstx), (1d / 7d));
-            newH[iter + 1] = h * math.pow((tol / errorEsty), (1d / 7d));
-            newH[iter + 2] = h * math.pow((tol / errorEstz), (1d / 7d));
-
-            iter += 3;*/
-        }
-
-        foreach (physicsObject obj in fullObjData)
-        {
             obj.a0 = getAcc(obj.ID, obj.pos, 0, true);
             obj.acc = obj.a0;
         }
@@ -207,17 +189,8 @@ public class PhysicsManager : MonoBehaviour
         t += h;
         h = math.clamp(newHProp, h * minHChange, h * maxHChange);
         h = math.max(h, minH);
-        /*
-        double newHD = newH.Min();
-        if(double.IsNaN(newHD) || double.IsInfinity(newHD) || newHD <= 0)
-        {
-            Debug.LogError($"Yo h is weird {newHD}");
-            newHD = h * 0.5;
-        }
-        h = math.clamp(newHD, h * minHChange, h * maxHChange);*/
     }
 
-    public double tempThresh;
     private double3 getAcc(int id, double3 curr, int i, bool usePos)
     {
         double3 net = new double3(0, 0, 0);
@@ -229,7 +202,6 @@ public class PhysicsManager : MonoBehaviour
                 double3 obj = usePos? other.pos : other.predictedPos[i];
                 double3 diff = obj - curr;
                 double dist2 = math.lengthsq(diff);
-                if (math.sqrt(dist2) < tempThresh) Debug.Log($"{id}, {other.ID}");
                 double dist3 = math.max(dist2 * math.sqrt(dist2), 1e-300);
                 net += (other.mass * diff) / (dist3);
             }
@@ -346,4 +318,3 @@ public class PhysicsManager : MonoBehaviour
         return maxVal;
     }
 }
-  

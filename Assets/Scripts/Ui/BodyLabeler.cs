@@ -31,6 +31,7 @@ public class BodyLabeler : MonoBehaviour
     public LabelButton[] labelButtons;
     public TMPro.TextMeshProUGUI[] labelTexts;
     public GameObject[] eRings;
+    public Vector3 offScreenPos;
 
     private int indexLength;
 
@@ -44,7 +45,6 @@ public class BodyLabeler : MonoBehaviour
         eRings = new GameObject[extraLabels];
         labelButtons = new LabelButton[extraLabels];
         labelTexts = new TMPro.TextMeshProUGUI[extraLabels];
-        inUse = new double[extraLabels];
         bodyTransforms = new Transform[length];
         indexes = new int[length];
         radi = new double[length];
@@ -117,10 +117,9 @@ public class BodyLabeler : MonoBehaviour
         if (framecount == 0) getLengths();
         for (int i = 0; i < indexLength; i++)
         {
-            bool hide = false;
             Transform targetBody = bodyTransforms[i];
-            Vector3 labelPos = Vector3.zero;
-            Vector3 ringPos = Vector3.zero;
+            Vector3 labelPos = offScreenPos;
+            Vector3 ringPos = offScreenPos;
             float alpha = 1f;
 
             if (targetBody.gameObject.activeInHierarchy)
@@ -147,12 +146,9 @@ public class BodyLabeler : MonoBehaviour
                             labelPos = new Vector3(screenPos.x + offsetx, screenPos.y + offsety, 0f);
                             ringPos = new Vector3(screenPos.x, screenPos.y, 0f);
                         }
-                        else hide = true;
                     }
                 }
-                else hide = true;
             }
-            else hide = true;
 
 
             labels[i].transform.position = labelPos;
@@ -168,9 +164,6 @@ public class BodyLabeler : MonoBehaviour
                 lColors[i].color = lCol;
                 rColors[i].color = rCol;
             }
-
-            //labels[i].gameObject.SetActive(!hide);
-            //rings[i].gameObject.SetActive(!hide);
         }
     }
 
@@ -186,21 +179,29 @@ public class BodyLabeler : MonoBehaviour
 
 
     public double cullSq;
-    private double[] inUse;
+    private int closestMoon;
+    private int prevClosestMoon = -1;
+    private double prevSq = math.INFINITY;
+    private static readonly int moonID = Shader.PropertyToID("_MoonID");
+
     private void getLengths()
     {
         double3 campos = camCont.worldPos;
         int length = PhysicsManager.fullObjData.Length;
         int[] top10 = new int[extraLabels];
         int currLabel = 0;
-        bool hide = true;
+        prevSq = math.INFINITY;
+
+        for (int i = 0; i < extraLabels; i++)
+        {
+            eLabels[i].transform.position = offScreenPos;
+            eRings[i].transform.position = offScreenPos;
+        }
+
         for (int i = 0; i < length; i++)
         {
-            hide = true;
             double3 pos = campos - PhysicsManager.fullObjData[i].pos;
             double sq = pos.x * pos.x + pos.y * pos.y + pos.z * pos.z;
-            eLabels[currLabel].transform.position = new Vector3(100, 0, 0);
-            eRings[currLabel].transform.position = Vector3.zero;
 
             lengthsSq[i] = sq;
             if (sq < cullSq)
@@ -208,23 +209,28 @@ public class BodyLabeler : MonoBehaviour
                 string name = EngineManager.namelookup[i];
                 if (!alwaysShow.Contains(char.ToUpper(name[0]) + name[1..].ToLower()) && !name.Contains("BARYCENTER"))
                 {
+                    if (sq < prevSq) closestMoon = i;
+                    prevSq = sq;
                     Vector3 screenPos = cam.WorldToScreenPoint(SceneManager.allBodys[i].transform.position);
                     if (onScreen(screenPos))
                     {
-                        inUse[currLabel] = 0;
-                        if (currLabel < extraLabels)
+                        if (currLabel < extraLabels - 1)
                         {
                             eLabels[currLabel].transform.position = new Vector3(screenPos.x + offsetx, screenPos.y + offsety, 0f);
                             eRings[currLabel].transform.position = new Vector3(screenPos.x, screenPos.y, 0f);
                             labelTexts[currLabel].text = EngineManager.namelookup[i];
                             labelButtons[currLabel].name = EngineManager.namelookup[i];
-                            inUse[currLabel] = 1;
-                            hide = false;
                             currLabel++;
                         }
                     }
                 }
             }
+        }
+
+        if(closestMoon != prevClosestMoon)
+        {
+            Shader.SetGlobalFloat(moonID, closestMoon);
+            prevClosestMoon = closestMoon;
         }
     }
 }

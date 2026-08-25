@@ -32,12 +32,13 @@ public class EngineManager : MonoBehaviour
     public double[] rotationSpeedValues;
     public double g = 0.000000000066743;
 
+    private int numOfObjects;
     void Start()
     {
         materalLoader();
         prebadLoader();
-        DataExtractor.extractData();
-        int numOfObjects = SceneManager.simulationInit(); //returns the num of obejcts
+        DataExtractor.extractData(false, "");
+        numOfObjects = SceneManager.simulationInit(); //returns the num of obejcts
         BodyManager.bodyManagerInit();
         PhysicsManager.physicsInit(numOfObjects);
 
@@ -64,5 +65,14 @@ public class EngineManager : MonoBehaviour
         BodyManager.updateBodys();
         cam.camUpdate();
         UiManager.UIUpdate();
+    }
+
+    public void jumpDate()
+    {
+        SelectDateMan.dateObj dateData = UiManager.selectDateMan.getData();
+        DataExtractor.extractData(true, $"{dateData.dataDate.x.ToString("D2")}-{dateData.dataDate.y.ToString("D2")}-{dateData.dataDate.z}");
+
+        BodyManager.bodyManagerInit();
+        PhysicsManager.physicsInit(numOfObjects);
     }
 }

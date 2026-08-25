@@ -89,11 +89,15 @@ public class infoDisplay : MonoBehaviour
     }
 
 
+    private static readonly int sunID = Shader.PropertyToID("_IsSun");
+    private static readonly int moonID = Shader.PropertyToID("_IsMoon");
+    private static readonly int cMoonID = Shader.PropertyToID("_UiMoonID");
 
     private void updateDefo()
     {
         texts[0].text = char.ToUpper(target[0]) + target[1..].ToLower();
         texts[19].text = convertMass(engineManager.GMValues[targetID]);
+        Shader.SetGlobalFloat(sunID, target == "SUN" ? 1.0f : 0.0f);
 
         physicsObject data = physicsManager.fullObjData[targetID];
         updateKep(data);
@@ -113,6 +117,8 @@ public class infoDisplay : MonoBehaviour
 
     private Texture2D getTex()
     {
+        Shader.SetGlobalFloat(moonID, 0);
+        if (target == "SUN") return Resources.Load<Texture2D>("Textures/Misc/sun");
         Texture2D tex;
         string uppTar = target.ToUpper();
         foreach (string path in paths)
@@ -123,6 +129,8 @@ public class infoDisplay : MonoBehaviour
                 return tex;
             }
         }
+        Shader.SetGlobalFloat(moonID, 1);
+        Shader.SetGlobalFloat(cMoonID, targetID);
         return Resources.Load<Texture2D>($"Textures/Misc/Missing Texture Texture");
     }
 
@@ -150,10 +158,14 @@ public class infoDisplay : MonoBehaviour
 
     public void initMenu()
     {
-        updateTargetID();
-        updateDefo();
-        infoUpdate();
-        updateKep(physicsManager.fullObjData[targetID]);
+        try
+        {
+            updateTargetID();
+            updateDefo();
+            infoUpdate();
+            updateKep(physicsManager.fullObjData[targetID]);
+        }
+        catch { return; }
     }
 
 
@@ -161,6 +173,7 @@ public class infoDisplay : MonoBehaviour
     public float scaleF = 0.9f;
     public float multi = -1.01683501684f; //as there is 10px of padding we need to have a weidr number (604/594)
     public float slideSpeed = 0.4f;
+    public float yLevel = -4.401978f;
 
     private bool slideLeft = true;
     public void move()
@@ -188,11 +201,11 @@ public class infoDisplay : MonoBehaviour
 
             float movePos = basewidth * t;
             if (!slideLeft) movePos -= basewidth;
-            globalRect.anchoredPosition = new Vector2(movePos, 0);
+            globalRect.anchoredPosition = new Vector2(movePos, yLevel);
 
             yield return null;
         }
 
-        globalRect.anchoredPosition = new Vector2(finalPos, 0);
+        globalRect.anchoredPosition = new Vector2(finalPos, yLevel);
     }
 }

@@ -16,7 +16,7 @@ public class DataExtractor : MonoBehaviour
     public string tiltFileName;
     public string rotSpeedFileName;
 
-    public void extractData()
+    public void extractData(bool jumpDate, string dateToJump)
     {
         string dataFolderPath = Path.Combine(Application.streamingAssetsPath, folderName);
         //convert the metadata file into a dictonary, i did not come up with the code on line 19, but i think i understnd the flow of data idk
@@ -28,7 +28,7 @@ public class DataExtractor : MonoBehaviour
 
         //open the closest file to the current date
         string paddedMonth = $"{DateTime.Now.Month}".PadLeft(2, '0');
-        string closestDate = $"01-{paddedMonth}-{DateTime.Now.Year}"; //kinda janky
+        string closestDate = jumpDate? dateToJump : $"01-{paddedMonth}-{DateTime.Now.Year}"; //kinda janky
 
         string posfolderPath = $"{dataFolderPath}\\pos\\{closestDate}-pos.bin";
         string velfolderPath = $"{dataFolderPath}\\vel\\{closestDate}-vel.bin";
@@ -60,6 +60,7 @@ public class DataExtractor : MonoBehaviour
                 double convertedDouble = BitConverter.ToDouble(bytes, 0);
                 temp[j/8] = convertedDouble;
             }
+            temp = new double3(temp.y, temp.z, temp.x);
             convertedArray[i/24] = temp;
         }
 

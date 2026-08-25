@@ -46,7 +46,7 @@ public class SceneManager : MonoBehaviour
         else name = splitname[0];
 
         try { materal = mainEngineManager.materialLookup[name.Split("|")[0]]; }
-        catch (Exception e) { materal = mainEngineManager.materialLookup["Missing Texture".ToUpper()]; }
+        catch (Exception e) { materal = mainEngineManager.materialLookup["Simple Moon".ToUpper()]; }//"Missing Texture".ToUpper()]; }
 
         allBodys.Add(currID, Instantiate(prefab, parent.transform));
         allBodys[currID].GetComponent<MeshRenderer>().material = materal;
