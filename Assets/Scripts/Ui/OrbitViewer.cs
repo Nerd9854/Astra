@@ -190,30 +190,31 @@ public class OrbitViewer : MonoBehaviour
 
 
 
-    public double3 calcStep(KeplerianElements kepElem, double deltaTime, double amountofLoops)
+    public double3 getPositionAtTime(KeplerianElements kepElem, double targetTime)
     {
-        double meanMotion = math.sqrt(kepElem.gravParam / (kepElem.semiMajorA * kepElem.semiMajorA * kepElem.semiMajorA));
+        double n = math.sqrt(kepElem.gravParam / (kepElem.semiMajorA * kepElem.semiMajorA * kepElem.semiMajorA));
+        double M = (kepElem.meanAnom + n * targetTime) % (2.0 * math.PI);
 
-        double newMeanAnom = kepElem.meanAnom + meanMotion * deltaTime;
-
-        double currEcc = kepElem.eccentricity;
-        double newEcc = newMeanAnom;
-        double deltaEcc = 0;
-        for (int i = 0; i < amountofLoops; i++)
+        double e = kepElem.eccentricity;
+        double E = M;
+        for (int i = 0; i < 5; i++)
         {
-            deltaEcc = (newMeanAnom - (newEcc - currEcc * math.sin(newEcc))) / (1 - currEcc * math.cos(newEcc));
-            newEcc += deltaEcc;
+            E += (M - (E - e * math.sin(E))) / (1.0 - e * math.cos(E));
         }
 
-        double xObital = kepElem.semiMajorA * (math.cos(newEcc) - currEcc);
-        double yOrbital = kepElem.semiMajorA * math.sqrt(1 - (currEcc * currEcc)) * math.sin(newEcc);
+        double xOrbital = kepElem.semiMajorA * (math.cos(E) - e);
+        double yOrbital = kepElem.semiMajorA * math.sqrt(1.0 - (e * e)) * math.sin(E);
 
-        double cosU = math.cos(kepElem.argOfPeri) * xObital - math.sin(kepElem.argOfPeri) * yOrbital;
-        double sinU = math.sin(kepElem.argOfPeri) * xObital + math.cos(kepElem.argOfPeri) * yOrbital;
+        double cosw = math.cos(kepElem.argOfPeri);
+        double sinw = math.sin(kepElem.argOfPeri);
+        double cosW = math.cos(kepElem.longOfAsendingNode);
+        double sinW = math.sin(kepElem.longOfAsendingNode);
+        double cosi = math.cos(kepElem.inclination);
+        double sini = math.sin(kepElem.inclination);
 
-        double x = math.cos(kepElem.longOfAsendingNode) * cosU - math.sin(kepElem.longOfAsendingNode) * sinU * math.cos(kepElem.inclination);
-        double y = math.sin(kepElem.longOfAsendingNode) * cosU + math.cos(kepElem.longOfAsendingNode) * sinU * math.cos(kepElem.inclination);
-        double z = sinU * math.sin(kepElem.inclination);
+        double x = xOrbital * (cosW * cosw - sinW * sinw * cosi) - yOrbital * (cosW * sinw + sinW * cosw * cosi);
+        double y = xOrbital * (sinW * cosw + cosW * sinw * cosi) - yOrbital * (sinW * sinw - cosW * cosw * cosi);
+        double z = xOrbital * (sinw * sini) + yOrbital * (cosw * sini);
 
         return new double3(x, y, z);
     }
