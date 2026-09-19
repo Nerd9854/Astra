@@ -78,7 +78,9 @@ public class speedViewer : MonoBehaviour
     public void speedupdate()
     {
         timeSinceStart += physicsManager.h;
-        currentSpeed.text = $"{physicsManager.h / targetSpeedMulti:F2}"; //fancy stuff
+        currentSpeed.text = $"{(physicsManager.h / targetSpeedMulti) / Time.deltaTime:F2}"; //fancy stuff
+        physicsManager.maxH = math.max((targetSpeedS * targetSpeedMulti) / Time.deltaTime, 1);
+
         DateTime newDateT = dateT.AddSeconds(timeSinceStart);
         date.text = $"{newDateT:HH:mm}\n{newDateT.Day} {months[newDateT.Month - 1]} {newDateT.Year}";
     }
