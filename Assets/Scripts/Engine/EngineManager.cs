@@ -12,6 +12,7 @@ public class EngineManager : MonoBehaviour
     public BodyManager BodyManager;
     public PhysicsManager PhysicsManager;
     public UiManager UiManager;
+    public SpacecraftManager SpacecraftManager;
 
     [Header("Materals/Prefabs")]
     public Material[] allMaterials;
@@ -41,6 +42,7 @@ public class EngineManager : MonoBehaviour
         numOfObjects = SceneManager.simulationInit(); //returns the num of obejcts
         BodyManager.bodyManagerInit();
         PhysicsManager.physicsInit(numOfObjects);
+        SpacecraftManager.craftinint();
 
         UiManager.UiInit();
     }
@@ -65,6 +67,7 @@ public class EngineManager : MonoBehaviour
         BodyManager.updateBodys();
         cam.camUpdate();
         UiManager.UIUpdate();
+        SpacecraftManager.updateCraft();
     }
 
     public void jumpDate()

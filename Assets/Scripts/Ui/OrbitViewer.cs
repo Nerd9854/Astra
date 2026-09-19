@@ -219,6 +219,39 @@ public class OrbitViewer : MonoBehaviour
         return new double3(x, y, z);
     }
 
+    public double3 getVelocityAtTime(KeplerianElements kepElem, double targetTime)
+    {
+        double n = math.sqrt(kepElem.gravParam / (kepElem.semiMajorA * kepElem.semiMajorA * kepElem.semiMajorA));
+        double M = (kepElem.meanAnom + n * targetTime) % (2.0 * math.PI);
+
+        double e = kepElem.eccentricity;
+        double E = M;
+        for (int i = 0; i < 5; i++)
+        {
+            E += (M - (E - e * math.sin(E))) / (1.0 - e * math.cos(E));
+        }
+
+        double dMdt = n;
+        double dEdt = dMdt / (1.0 - e * math.cos(E));
+
+        double vxOrbital = -kepElem.semiMajorA * math.sin(E) * dEdt;
+        double vyOrbital = kepElem.semiMajorA * math.sqrt(1.0 - (e * e)) * math.cos(E) * dEdt;
+
+        double cosw = math.cos(kepElem.argOfPeri);
+        double sinw = math.sin(kepElem.argOfPeri);
+        double cosW = math.cos(kepElem.longOfAsendingNode);
+        double sinW = math.sin(kepElem.longOfAsendingNode);
+        double cosi = math.cos(kepElem.inclination);
+        double sini = math.sin(kepElem.inclination);
+
+        double vx = vxOrbital * (cosW * cosw - sinW * sinw * cosi) - vyOrbital * (cosW * sinw + sinW * cosw * cosi);
+        double vy = vxOrbital * (sinW * cosw + cosW * sinw * cosi) - vyOrbital * (sinW * sinw - cosW * cosw * cosi);
+        double vz = vxOrbital * (sinw * sini) + vyOrbital * (cosw * sini);
+
+        return new double3(vx, vy, vz);
+    }
+
+
 
     public float relativeWidth;
     public float cutttoff;

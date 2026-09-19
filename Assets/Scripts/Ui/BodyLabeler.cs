@@ -1,10 +1,13 @@
 using System;
 using System.Linq;
+using System.Xml.Serialization;
 using Unity.Mathematics;
 using UnityEngine;
 
 public class BodyLabeler : MonoBehaviour
 {
+    public Transform spacecraftTransform;
+    public SpacecraftManager spacecraftManager;
     public GameObject parent;
     public Camera cam;
     public SceneManager SceneManager;
@@ -20,6 +23,10 @@ public class BodyLabeler : MonoBehaviour
     public Transform[] bodyTransforms;
     public GameObject[] labels;
     public GameObject[] rings;
+    public GameObject spacecraftL;
+    public GameObject spacecraftR;
+    private TMPro.TextMeshProUGUI spacecraftLC;
+    private TMPro.TextMeshProUGUI spacecraftRC;
     private int[] indexes;
     private double[] radi;
     private TMPro.TextMeshProUGUI[] lColors;
@@ -78,6 +85,22 @@ public class BodyLabeler : MonoBehaviour
             eRings[i].GetComponent<TMPro.TextMeshProUGUI>().color = Color.white;
             eRings[i].name = $"Extra Ring {i}";
         }
+
+        spacecraftL = Instantiate(textPrefab, parent.transform);
+        spacecraftL.GetComponent<TMPro.TextMeshProUGUI>().text = "Spacecraft";
+        spacecraftL.GetComponent<TMPro.TextMeshProUGUI>().color = Color.white;
+        spacecraftL.GetComponent<LabelButton>().buttonInit();
+        spacecraftL.GetComponent<LabelButton>().name = "Spacecraft";
+        spacecraftL.GetComponent<LabelButton>().infoDisplay = infoDisplay;
+        spacecraftL.name = $"Spacecraft Label";
+
+        spacecraftR = Instantiate(ringPrefab, parent.transform);
+        spacecraftR.GetComponent<TMPro.TextMeshProUGUI>().color = Color.white;
+        spacecraftR.name = "Spacecraft Ring";
+        
+        
+        spacecraftLC = spacecraftL.GetComponent<TMPro.TextMeshProUGUI>();
+        spacecraftRC = spacecraftR.GetComponent<TMPro.TextMeshProUGUI>();
     }
 
     private void setupArray(int indexNum, int lookupIndex)
@@ -165,6 +188,30 @@ public class BodyLabeler : MonoBehaviour
                 rColors[i].color = rCol;
             }
         }
+
+        updateSpacecraft();
+    }
+
+    private void updateSpacecraft()
+    {
+        if(!spacecraftManager.spacecraftActive) return;
+
+        Transform targetBody = spacecraftTransform;
+        Vector3 labelPos = offScreenPos;
+        Vector3 ringPos = offScreenPos;
+
+        if (targetBody.gameObject.activeInHierarchy)
+        {
+            Vector3 screenPos = cam.WorldToScreenPoint(targetBody.position);
+            if (onScreen(screenPos))
+            {
+                labelPos = new Vector3(screenPos.x + offsetx, screenPos.y + offsety, 0f);
+                ringPos = new Vector3(screenPos.x, screenPos.y, 0f);
+            }
+        }
+
+        spacecraftL.transform.position = labelPos;
+        spacecraftR.transform.position = ringPos;
     }
 
     bool onScreen(Vector3 pos)
@@ -200,27 +247,30 @@ public class BodyLabeler : MonoBehaviour
 
         for (int i = 0; i < length; i++)
         {
-            double3 pos = campos - PhysicsManager.fullObjData[i].pos;
-            double sq = pos.x * pos.x + pos.y * pos.y + pos.z * pos.z;
-
-            lengthsSq[i] = sq;
-            if (sq < cullSq)
+            if(i != PhysicsManager.spacecraftID)
             {
-                string name = EngineManager.namelookup[i];
-                if (!alwaysShow.Contains(char.ToUpper(name[0]) + name[1..].ToLower()) && !name.Contains("BARYCENTER"))
+                double3 pos = campos - PhysicsManager.fullObjData[i].pos;
+                double sq = pos.x * pos.x + pos.y * pos.y + pos.z * pos.z;
+
+                lengthsSq[i] = sq;
+                if (sq < cullSq)
                 {
-                    if (sq < prevSq) closestMoon = i;
-                    prevSq = sq;
-                    Vector3 screenPos = cam.WorldToScreenPoint(SceneManager.allBodys[i].transform.position);
-                    if (onScreen(screenPos))
+                    string name = EngineManager.namelookup[i];
+                    if (!alwaysShow.Contains(char.ToUpper(name[0]) + name[1..].ToLower()) && !name.Contains("BARYCENTER"))
                     {
-                        if (currLabel < extraLabels - 1)
+                        if (sq < prevSq) closestMoon = i;
+                        prevSq = sq;
+                        Vector3 screenPos = cam.WorldToScreenPoint(SceneManager.allBodys[i].transform.position);
+                        if (onScreen(screenPos))
                         {
-                            eLabels[currLabel].transform.position = new Vector3(screenPos.x + offsetx, screenPos.y + offsety, 0f);
-                            eRings[currLabel].transform.position = new Vector3(screenPos.x, screenPos.y, 0f);
-                            labelTexts[currLabel].text = EngineManager.namelookup[i];
-                            labelButtons[currLabel].name = EngineManager.namelookup[i];
-                            currLabel++;
+                            if (currLabel < extraLabels - 1)
+                            {
+                                eLabels[currLabel].transform.position = new Vector3(screenPos.x + offsetx, screenPos.y + offsety, 0f);
+                                eRings[currLabel].transform.position = new Vector3(screenPos.x, screenPos.y, 0f);
+                                labelTexts[currLabel].text = EngineManager.namelookup[i];
+                                labelButtons[currLabel].name = EngineManager.namelookup[i];
+                                currLabel++;
+                            }
                         }
                     }
                 }

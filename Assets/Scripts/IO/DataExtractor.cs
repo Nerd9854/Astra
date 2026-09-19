@@ -16,6 +16,8 @@ public class DataExtractor : MonoBehaviour
     public string tiltFileName;
     public string rotSpeedFileName;
 
+    public speedViewer speedViewer;
+
     public void extractData(bool jumpDate, string dateToJump)
     {
         string dataFolderPath = Path.Combine(Application.streamingAssetsPath, folderName);
@@ -32,6 +34,7 @@ public class DataExtractor : MonoBehaviour
 
         string posfolderPath = $"{dataFolderPath}\\pos\\{closestDate}-pos.bin";
         string velfolderPath = $"{dataFolderPath}\\vel\\{closestDate}-vel.bin";
+        speedViewer.updateDate(closestDate);
         try
         {
             EngineManager.initalPos = convertBinToVec3Array(posfolderPath);

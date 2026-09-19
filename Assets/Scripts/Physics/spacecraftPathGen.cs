@@ -13,43 +13,107 @@ public class spacecraftPathGen : MonoBehaviour
     public OrbitViewer orbitViewer;
     public EngineManager engineManager;
     public PhysicsManager physicsManager;
-
-    public string startBody;
-    public string endBody;
-    public double tof = 3600;
+    PhysicsManager.physicsObject sunObj;
 
 
-    public void Update()
+    public void genStart()
     {
-        int startBodyId = engineManager.bodylookup[startBody];
-        int endBodyId = engineManager.bodylookup[endBody];
-        PhysicsManager.physicsObject endBodyObj = physicsManager.fullObjData[endBodyId];
-        PhysicsManager.physicsObject sunObj = physicsManager.fullObjData[engineManager.bodylookup["SUN"]];
+        sunObj = physicsManager.fullObjData[engineManager.bodylookup["SUN"]];
+    }
 
-        double muEarth = sunObj.mass;
-        double3 initPos = physicsManager.fullObjData[startBodyId].pos - sunObj.pos;
-        Vector3D r1 = new Vector3D(initPos.x, initPos.y, initPos.z);
+    public double getVel(string startBody, string endBody, double t0, double tof)
+    {
+        PhysicsManager.physicsObject endBodyObj = physicsManager.fullObjData[engineManager.bodylookup[endBody]];
+        PhysicsManager.physicsObject startBodyObj = physicsManager.fullObjData[engineManager.bodylookup[startBody]];
 
+        OrbitViewer.KeplerianElements startBodyKep = orbitViewer.calcKep(startBodyObj.pos, startBodyObj.vel, startBodyObj.mass, sunObj.mass);
         OrbitViewer.KeplerianElements endBodyKep = orbitViewer.calcKep(endBodyObj.pos, endBodyObj.vel, endBodyObj.mass, sunObj.mass);
-        double3 endPos = orbitViewer.getPositionAtTime(endBodyKep, tof) - sunObj.pos;
+
+        double mu = sunObj.mass;
+        double3 initPos = orbitViewer.getPositionAtTime(startBodyKep, t0) - sunObj.pos;
+        double3 endPos = orbitViewer.getPositionAtTime(endBodyKep, t0 + tof) - sunObj.pos;
+
+        Vector3D r1 = new Vector3D(initPos.x, initPos.y, initPos.z);
         Vector3D r2 = new Vector3D(endPos.x, endPos.y, endPos.z);
 
-        /*muEarth = 3.986004418e5;
-        r1 = new Vector3D(5000, 10000, 2100);
-        r2 = new Vector3D(-14600, 2500, 7000);*/
-
-        Debug.Log($"r1: {r1} (5000, 10000, 2100), r2: {r2} (-14600, 2500, 7000), mu: {muEarth} (3.986004418e5)");
+        double3 vBody1 = orbitViewer.getVelocityAtTime(startBodyKep, t0);
 
         try
         {
-            var (v1, v2) = SolveLambert(r1, r2, tof, muEarth, "prograde");
-            Debug.Log($"Initial Velocity Vector (V1): {v1} km/s");
-            Debug.Log($"Final Velocity Vector (V2): {v2} km/s");
+            var (v1, v2) = SolveLambert(r1, r2, tof, mu, "prograde");
+            double3 v1d = new double3(v1.X, v1.Y, v1.Z);
+            return math.length(v1d - vBody1);
         }
         catch (Exception ex)
         {
             Debug.Log($"Error solving Lambert's problem: {ex.Message}");
         }
+        return 0;
+    }
+
+    public (double bestT0, double bestTOF, double bestCost) SolveSingleLeg(string startBody, string endBody, double t0Min, double t0Max, double tofMin, double tofMax, int pop = 30, int gens = 100)
+    {
+        var rng = new System.Random();
+        var t0s = new double[pop];
+        var tofs = new double[pop];
+        var costs = new double[pop];
+
+        for (int i = 0; i < pop; i++)
+        {
+            t0s[i] = t0Min + rng.NextDouble() * (t0Max - t0Min);
+            tofs[i] = tofMin + rng.NextDouble() * (tofMax - tofMin);
+            costs[i] = getVel(startBody, endBody, t0s[i], tofs[i]);
+        }
+
+        for (int g = 0; g < gens; g++)
+            for (int i = 0; i < pop; i++)
+            {
+                int a, b, c;
+                do { a = rng.Next(pop); } while (a == i);
+                do { b = rng.Next(pop); } while (b == i || b == a);
+                do { c = rng.Next(pop); } while (c == i || c == a || c == b);
+
+                double F = 0.8;
+                double trialT0 = math.clamp(t0s[a] + F * (t0s[b] - t0s[c]), t0Min, t0Max);
+                double trialTOF = math.clamp(tofs[a] + F * (tofs[b] - tofs[c]), tofMin, tofMax);
+                double trialCost = getVel(startBody, endBody, trialT0, trialTOF);
+
+                if (trialCost < costs[i])
+                {
+                    t0s[i] = trialT0; tofs[i] = trialTOF; costs[i] = trialCost;
+                }
+            }
+
+        int best = 0;
+        for (int i = 1; i < pop; i++) if (costs[i] < costs[best]) best = i;
+        return (t0s[best], tofs[best], costs[best]);
+    }
+
+
+    public void LaunchMission(string startBody, string endBody, double t0, double tof)
+    {
+        var sunObj = physicsManager.fullObjData[engineManager.bodylookup["SUN"]];
+        var startObj = physicsManager.fullObjData[engineManager.bodylookup[startBody]];
+        var startKep = orbitViewer.calcKep(startObj.pos, startObj.vel, startObj.mass, sunObj.mass);
+
+        double3 spawnPos = orbitViewer.getPositionAtTime(startKep, t0);
+        double3 spawnVel = orbitViewer.getVelocityAtTime(startKep, t0);
+
+        var craft = physicsManager.addSpacecraft(spawnPos, spawnVel, 0.0);
+
+        double3 r1 = spawnPos - sunObj.pos;
+        double3 r2 = orbitViewer.getPositionAtTime(orbitViewer.calcKep(
+            physicsManager.fullObjData[engineManager.bodylookup[endBody]].pos,
+            physicsManager.fullObjData[engineManager.bodylookup[endBody]].vel,
+            physicsManager.fullObjData[engineManager.bodylookup[endBody]].mass,
+            sunObj.mass), t0 + tof) - sunObj.pos;
+
+        var (v1, _) = spacecraftPathGen.SolveLambert(
+            new spacecraftPathGen.Vector3D(r1.x, r1.y, r1.z),
+            new spacecraftPathGen.Vector3D(r2.x, r2.y, r2.z),
+            tof, sunObj.mass, "prograde");
+
+        physicsManager.commandBurn(craft, new double3(v1.X, v1.Y, v1.Z), 60.0);
     }
 
 

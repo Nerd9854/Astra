@@ -13,6 +13,7 @@ using static UnityEngine.Rendering.DebugUI;
 public class infoDisplay : MonoBehaviour
 {
     public GameObject global;
+    public GameObject otherGlobal;
     public PhysicsManager physicsManager;
     public OrbitViewer orbitViewer;
     public EngineManager engineManager;
@@ -23,6 +24,7 @@ public class infoDisplay : MonoBehaviour
     public string[] exlude = new string[] { "InfoBase" };
     public string target = "Earth";
     private int targetID;
+    public bool globalSpacecraftInfo = false;
 
     public TextMeshProUGUI[] texts;
     public Material planetMat;
@@ -61,6 +63,7 @@ public class infoDisplay : MonoBehaviour
 
     public void updateTargetID()
     {
+        if (globalSpacecraftInfo) return;
         targetID = engineManager.bodylookup[target];
     }
 
@@ -152,12 +155,33 @@ public class infoDisplay : MonoBehaviour
 
     public void infoUpdate()
     {
+        if (globalSpacecraftInfo) return;
         physicsObject data = physicsManager.fullObjData[targetID];
         updatePosVelAcc(data.pos, data.vel, data.acc);
     }
 
     public void initMenu()
     {
+        if (globalSpacecraftInfo && target == "Spacecraft")
+        {
+            otherGlobal.SetActive(false);
+            global.SetActive(true);
+        }
+        else if (globalSpacecraftInfo && target != "Spacecraft")
+        {
+            otherGlobal.SetActive(true);
+            global.SetActive(false);
+        }
+        else if (!globalSpacecraftInfo && target != "Spacecraft")
+        {
+            otherGlobal.SetActive(false);
+            global.SetActive(true);
+        }
+        else if (!globalSpacecraftInfo && target == "Spacecraft")
+        {
+            otherGlobal.SetActive(true);
+            global.SetActive(false);
+        }
         try
         {
             updateTargetID();
@@ -165,7 +189,14 @@ public class infoDisplay : MonoBehaviour
             infoUpdate();
             updateKep(physicsManager.fullObjData[targetID]);
         }
-        catch { return; }
+        catch
+        {
+            if (target == "Spacecraft")
+            {
+                texts[0].text = "Spacecraft";
+            }
+            else { return; }
+        }
     }
 
 

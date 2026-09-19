@@ -6,6 +6,8 @@ public class BodyManager : MonoBehaviour
     public CameraController cam;
     public SceneManager SceneManager;
     public PhysicsManager PhysicsManager;
+    public SpacecraftManager SpacecraftManager;
+    public GameObject spacecraftMesh;
 
     public OrbitViewer OrbitViewer;
 
@@ -53,6 +55,8 @@ public class BodyManager : MonoBehaviour
         }
     }
 
+    private bool spacecraftActive = true;
+    public int temp;
     public void updateBodys()
     {
         double3 worldpos = cam.worldPos;
@@ -72,6 +76,26 @@ public class BodyManager : MonoBehaviour
             //renderer.enabled = math.lengthsq(distance) < cullingdistsq;
 
             currIndex++;
+        }
+
+        if (SpacecraftManager.spacecraftActive)
+        {
+            try
+            {
+                double3 distance = PhysicsManager.fullObjData[PhysicsManager.spacecraftID].pos - worldpos;
+
+                double3 gamepos = (distance) / scale;
+                if (math.lengthsq(distance) < cullingdistsq)
+                {
+
+                    if (spacecraftActive) spacecraftMesh.SetActive(false);
+                }
+                SpacecraftManager.spacecraft.transform.position = (float3)(gamepos);
+            }
+            catch
+            {
+                Debug.Log("Not moving spacecraft");
+            }
         }
 
         updateSunPos(sun.transform.position);
