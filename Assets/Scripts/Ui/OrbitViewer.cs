@@ -83,6 +83,7 @@ public class OrbitViewer : MonoBehaviour
         }
     }
 
+    [Serializable]
     public class KeplerianElements
     {
         public double semiMajorA;
@@ -267,7 +268,7 @@ public class OrbitViewer : MonoBehaviour
                 closestPoint = points[i];
             }
         }
-        Debug.Log(Vector3.Distance(Vector3.zero / scaleDiff, closestPoint));
+        //Debug.Log(Vector3.Distance(Vector3.zero / scaleDiff, closestPoint));
         return Vector3.Distance(Vector3.zero / scaleDiff, closestPoint);
     }
 
@@ -282,7 +283,7 @@ public class OrbitViewer : MonoBehaviour
         for (int i = 0; i < numOfTrails; i++)
         {
             Vector3[] points = calcAngle(keplarinElements[i], 100);
-            Debug.Log($"{cam.transform.position / scaleDiff}, {bodies[i].position / scaleDiff} = {Vector3.Distance(cam.transform.position / scaleDiff, bodies[i].position / scaleDiff)}");
+            //Debug.Log($"{cam.transform.position / scaleDiff}, {bodies[i].position / scaleDiff} = {Vector3.Distance(cam.transform.position / scaleDiff, bodies[i].position / scaleDiff)}");
             float dist = closestPoint(points, cam.transform.position, scaleDiff);//Vector3.Distance(cam.transform.position / scaleDiff, bodies[i].position / scaleDiff);
             float normDist = (dist * relativeWidth);
             if (normDist < cutttoff) normDist = cutttofff;
