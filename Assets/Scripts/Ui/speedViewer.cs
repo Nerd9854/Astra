@@ -65,7 +65,7 @@ public class speedViewer : MonoBehaviour
         string month = months[int.Parse(dateSplit[1]) - 1];
 
         date.text = $"00:00\n{dateSplit[0]} {month} {dateSplit[2]}";
-        dateT = new DateTime(int.Parse(dateSplit[2]), int.Parse(dateSplit[0]), int.Parse(dateSplit[1]));
+        dateT = new DateTime(int.Parse(dateSplit[2]), int.Parse(dateSplit[1]), int.Parse(dateSplit[0]));
         timeSinceStart = 0;
     }
 

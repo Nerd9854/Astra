@@ -13,6 +13,8 @@ public class EngineManager : MonoBehaviour
     public PhysicsManager PhysicsManager;
     public UiManager UiManager;
     public SpacecraftManager SpacecraftManager;
+    public showWarning showWarning;
+    public exportData exportData;
 
     [Header("Materals/Prefabs")]
     public Material[] allMaterials;
@@ -45,6 +47,7 @@ public class EngineManager : MonoBehaviour
         SpacecraftManager.craftinint();
 
         UiManager.UiInit();
+        exportData.dataExporterInit();
     }
 
     private void materalLoader() //this converts each materal(and prefab in the otehr one) into a array and a lookup diconary so i can say 'Earth' and it gives me earhts index
@@ -77,5 +80,6 @@ public class EngineManager : MonoBehaviour
 
         BodyManager.bodyManagerInit();
         PhysicsManager.physicsInit(numOfObjects);
+        showWarning.dispalyNotif(2, $"Succcsessfully jumped dates to {dateData.dataDate.x.ToString("D2")}/{dateData.dataDate.y.ToString("D2")}/{dateData.dataDate.z}");
     }
 }

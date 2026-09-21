@@ -95,7 +95,7 @@ public class showWarning : MonoBehaviour
     private void Start()
     {
         dispalyNotif(2, "Succcsessfully loaded, welcome to ASTRA!");
-        dispalyNotif(1, "If stuck click the help tab for tutorials");
+        dispalyNotif(1, "Stuck? Click the help tab for tutorials + more");//"If stuck click the help tab for tutorials");
 
         dispalyNotif(0, "This is a warning");
         dispalyNotif(1, "Information");

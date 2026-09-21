@@ -51,8 +51,7 @@ public class CameraController : MonoBehaviour
     private bool transitioningToOrbit = false;
 
     private bool movingToOrbit = false;
-    private Vector3 orbitTargetPosition;
-    private Quaternion orbitTargetRotation;
+    private Vector3 orbitDirection; // unit direction from target to camera, fixed for the duration of the transition
 
 
     private Vector3 lastMousePosition;
@@ -82,6 +81,20 @@ public class CameraController : MonoBehaviour
     public Quaternion FrameDeltaRotation { get; private set; }   // this frame's rotation change
 
     private Quaternion lastRawRotation;
+
+    // ---- Following a moving orbit target ----
+    [Header("Follow Moving Orbit Target")]
+    [Tooltip("While orbiting (or transitioning into orbit), the camera shifts by however much the target's real worldPosition moves on its own each frame, so a moving planet/moon doesn't slip out from under you. Only applies when target.useWorldPosition is true.")]
+    [SerializeField] private bool followMovingTarget = true;
+
+    private double3 lastTargetWorldPosition;
+    private bool hasLastTargetWorldPosition = false;
+
+    // How much of this frame's target.worldPosition change came from our own
+    // NudgeTarget() calls (deliberate pan/click), so FollowTarget() doesn't
+    // double-count movement that's already being applied via the normal
+    // camera-movement path.
+    private double3 nudgeAccumulatorThisFrame;
 
 
     void Awake()
@@ -134,12 +147,13 @@ public class CameraController : MonoBehaviour
         // Fold this frame's small, precise delta into the big, precise total (real km).
         worldPos += new double3(FrameDeltaPosition.x, FrameDeltaPosition.y, FrameDeltaPosition.z) * kmPerUnit;
 
-        if (movingToOrbit)
-        {
-            orbitTargetPosition -= FrameDeltaPosition;
-        }
+        FollowTarget();
 
         SyncTargetTransform();
+
+        // Whatever nudge happened this frame has now been accounted for by
+        // FollowTarget - clear it before the next frame.
+        nudgeAccumulatorThisFrame = double3.zero;
 
         // The camera never repositions anything else in the scene - worldPos
         // above is all any other script needs to place itself relative to the camera.
@@ -154,6 +168,47 @@ public class CameraController : MonoBehaviour
         target.transform.position = new Vector3((float)relativeUnits.x, (float)relativeUnits.y, (float)relativeUnits.z);
     }
 
+    // Keeps the orbit offset (distance + angle) fixed relative to the target
+    // even while the target's true worldPosition is moving on its own -
+    // e.g. a moon actually orbiting its planet. Only the part of the
+    // target's movement that ISN'T from our own NudgeTarget() calls counts,
+    // otherwise panning/clicking during orbit would move the camera twice.
+    private void FollowTarget()
+    {
+        if (!followMovingTarget || target == null || target.transform == null || !target.useWorldPosition)
+        {
+            hasLastTargetWorldPosition = false;
+            return;
+        }
+
+        bool trackingOrbit = focusOrbit || movingToOrbit || transitioningToOrbit;
+
+        if (!trackingOrbit)
+        {
+            // Not orbiting right now - don't carry a stale delta into the
+            // next time orbit mode is entered (that would cause one big jump).
+            hasLastTargetWorldPosition = false;
+            return;
+        }
+
+        if (hasLastTargetWorldPosition)
+        {
+            double3 targetDelta = (target.worldPosition - lastTargetWorldPosition) - nudgeAccumulatorThisFrame;
+            worldPos += targetDelta;
+        }
+
+        lastTargetWorldPosition = target.worldPosition;
+        hasLastTargetWorldPosition = true;
+    }
+
+    // Call this from whatever script assigns a brand-new orbit target (a
+    // different planet/moon), so the first frame after switching doesn't
+    // read as one huge, fake "movement" of the old target.
+    public void ResetFollowTracking()
+    {
+        hasLastTargetWorldPosition = false;
+    }
+
     private void NudgeTarget(Vector3 unityDelta)
     {
         if (target == null || target.transform == null) return;
@@ -162,7 +217,9 @@ public class CameraController : MonoBehaviour
 
         if (target.useWorldPosition)
         {
-            target.worldPosition += new double3(unityDelta.x, unityDelta.y, unityDelta.z) * kmPerUnit;
+            double3 worldDelta = new double3(unityDelta.x, unityDelta.y, unityDelta.z) * kmPerUnit;
+            target.worldPosition += worldDelta;
+            nudgeAccumulatorThisFrame += worldDelta;
         }
     }
 
@@ -187,37 +244,41 @@ public class CameraController : MonoBehaviour
         if (direction.magnitude < 0.1f)
             direction = -transform.forward;
 
-        direction.Normalize();
-
-        orbitTargetPosition = target.transform.position + direction * distance;
-
-        Vector3 lookDirection = target.transform.position - orbitTargetPosition;
-
-        orbitTargetRotation = Quaternion.LookRotation(lookDirection);
+        orbitDirection = direction.normalized;
 
         movingToOrbit = true;
     }
 
     private void MoveToOrbit()
     {
+        // Recomputed live every frame from the target's current position
+        // (which FollowTarget/SyncTargetTransform already keep correct even
+        // while the target is moving) - this is what was causing the
+        // "buggy" entry: the old code aimed at a destination point captured
+        // once at the start, which went stale if the target kept moving
+        // during the Lerp-in.
+        Vector3 livePivot = target.transform.position;
+        Vector3 liveTargetPosition = livePivot + orbitDirection * distance;
+        Quaternion liveTargetRotation = Quaternion.LookRotation(livePivot - liveTargetPosition);
+
         transform.position = Vector3.Lerp(
             transform.position,
-            orbitTargetPosition,
+            liveTargetPosition,
             Time.deltaTime * orbitEnterSpeed
         );
 
         transform.rotation = Quaternion.Slerp(
             transform.rotation,
-            orbitTargetRotation,
+            liveTargetRotation,
             Time.deltaTime * orbitEnterSpeed
         );
 
 
-        if (Vector3.Distance(transform.position, orbitTargetPosition) < orbitStopDistance &&
-           Quaternion.Angle(transform.rotation, orbitTargetRotation) < 1f)
+        if (Vector3.Distance(transform.position, liveTargetPosition) < orbitStopDistance &&
+           Quaternion.Angle(transform.rotation, liveTargetRotation) < 1f)
         {
-            transform.position = orbitTargetPosition;
-            transform.rotation = orbitTargetRotation;
+            transform.position = liveTargetPosition;
+            transform.rotation = liveTargetRotation;
 
             movingToOrbit = false;
             transitioningToOrbit = false;
@@ -330,23 +391,28 @@ public class CameraController : MonoBehaviour
         Vector3 direction = transform.position - target.transform.position;
         if (direction.sqrMagnitude < 0.0001f) direction = -transform.forward;
 
-        // Step size scales with current distance (feels natural at any scale),
+        // One raycast, reused for both purposes below. Distance-to-pivot
+        // alone isn't enough to slow the step down properly - the pivot is
+        // often a planet's centre, far past the actual surface - so this
+        // also checks the collider itself and uses whichever is closer.
+        bool hitSomething = Physics.Raycast(transform.position, direction.normalized,
+            out RaycastHit hit, direction.magnitude, ~0, QueryTriggerInteraction.Ignore);
+
+        float scaleDistance = hitSomething ? Mathf.Min(direction.magnitude, hit.distance) : direction.magnitude;
+
+        // Step size scales with that distance (feels natural at any scale),
         // but never shrinks below minZoomStep - that floor is what stops zoom
         // grinding to a halt near an object, and stops it crawling when
         // backing back out from close range.
-        float stepDistance = Mathf.Max(direction.magnitude, minZoomStep);
+        float stepDistance = Mathf.Max(scaleDistance, minZoomStep);
         Vector3 movement = direction.normalized * stepDistance * scroll * zoomSpeed;
 
         bool zoomingIn = Vector3.Dot(movement, direction) < 0f;
-        if (zoomingIn)
+        if (zoomingIn && hitSomething)
         {
             float requestedDistance = movement.magnitude;
-            if (Physics.Raycast(transform.position, transform.forward, out RaycastHit hit,
-                requestedDistance + minZoomClipDistance, ~0, QueryTriggerInteraction.Ignore))
-            {
-                float allowedDistance = Mathf.Max(0f, hit.distance - minZoomClipDistance);
-                movement = movement.normalized * Mathf.Min(requestedDistance, allowedDistance);
-            }
+            float allowedDistance = Mathf.Max(0f, hit.distance - minZoomClipDistance);
+            movement = movement.normalized * Mathf.Min(requestedDistance, allowedDistance);
         }
 
         transform.position += movement;
@@ -388,7 +454,18 @@ public class CameraController : MonoBehaviour
     //OG: https://gist.github.com/beardordie/27961d466b497a843d69f8209b07d1b5?
 
     [SerializeField] private float initialSpeed = 10f;
-    [SerializeField] private float increaseSpeed = 1.25f;
+
+    [Header("Pan Mode - Logarithmic Speed")]
+    [Tooltip("Fraction of the open space ahead of you that WASD flight speed targets each second (1.0 = roughly cross that distance in a second at full speed).")]
+    [SerializeField] private float moveSpeedFraction = 1f;
+    [Tooltip("How sharply currentSpeed ramps toward the target speed, as a fraction of the target speed per second. Higher = snappier response when the scale ahead of you changes.")]
+    [SerializeField] private float speedRampSharpness = 3f;
+    [Tooltip("Floor for the raycast distance used to scale WASD speed and pan-mode zoom (Unity units) - stops speed/zoom collapsing to near-zero right next to small objects.")]
+    [SerializeField] private float minScaleDistance = 0.5f;
+    [Tooltip("Used as the scale distance when there's nothing ahead to hit (e.g. deep space) - keep this large so open-space flight/zoom stays fast.")]
+    [SerializeField] private float openSpaceScaleDistance = 5000f;
+    [Tooltip("How far the reference raycast checks, in Unity units.")]
+    [SerializeField] private float scaleRaycastMaxDistance = 1000000f;
 
 
 
@@ -399,8 +476,8 @@ public class CameraController : MonoBehaviour
     [SerializeField] private bool cursorVisibleByDefault = true;
 
     [SerializeField] private bool allowMiddleClickPanning = true;
-    [Tooltip("World units panned across one full screen-width drag. This is the ONLY thing that controls middle-mouse pan speed - turn it down if panning feels too fast.")]
-    [Range(0.1f, 100f)][SerializeField] private float middleClickPanningSpeed = 3f;
+    [Tooltip("Fraction of the open space ahead of you that a full screen-width middle-click drag pans - same logarithmic idea as WASD/zoom, so this no longer goes flat and slow when zoomed out.")]
+    [Range(0.05f, 5f)][SerializeField] private float middleClickPanFraction = 0.5f;
     [SerializeField] private float normalZoomSpeed = 2;
 
     private Vector3 panLastMouse;
@@ -437,7 +514,23 @@ public class CameraController : MonoBehaviour
         }
     }
 
+    // Distance to whatever's ahead of you in a given direction - the same
+    // idea orbit-mode Zoom() uses for its target, just aimed wherever you're
+    // currently flying/looking instead of at a fixed pivot. Used to scale
+    // both WASD speed and pan-mode scroll zoom so they feel proportional to
+    // your surroundings at any scale, instead of a flat units/second.
+    private float GetScaleDistance(Vector3 direction)
+    {
+        if (direction.sqrMagnitude < 0.0001f) direction = transform.forward;
 
+        if (Physics.Raycast(transform.position, direction.normalized, out RaycastHit hit,
+            scaleRaycastMaxDistance, ~0, QueryTriggerInteraction.Ignore))
+        {
+            return Mathf.Max(hit.distance, minScaleDistance);
+        }
+
+        return openSpaceScaleDistance;
+    }
 
     private void NormalUpdate()
     {
@@ -482,46 +575,44 @@ public class CameraController : MonoBehaviour
             bool lastMoving = moving;
             Vector3 deltaPosition = Vector3.zero;
 
-
-
-            if (moving)
-                currentSpeed += increaseSpeed * Time.deltaTime;
-
-
-
             moving = false;
 
             // Full 3D flight - forward/right follow exactly where the camera
-            // is pointed (pitch included), same as the scroll-wheel movement below.
+            // is pointed (pitch included), same as before.
             Vector3 forward = transform.forward;
             Vector3 right = transform.right;
 
-            CheckMove(forwardButton, ref deltaPosition, forward, false, false);
-            CheckMove(backwardButton, ref deltaPosition, -forward, false, false);
-            CheckMove(rightButton, ref deltaPosition, right, false, false);
-            CheckMove(leftButton, ref deltaPosition, -right, false, false);
-
-            if (Input.GetAxis("Mouse ScrollWheel") > 0f) // forward
-            {
-                CheckMove(forwardButton, ref deltaPosition, transform.forward * normalZoomSpeed, true, false);
-            }
-            else if (Input.GetAxis("Mouse ScrollWheel") < 0f) // backwards
-            {
-                CheckMove(backwardButton, ref deltaPosition, -transform.forward * normalZoomSpeed, false, true);
-            }
-
-
+            CheckMove(forwardButton, ref deltaPosition, forward);
+            CheckMove(backwardButton, ref deltaPosition, -forward);
+            CheckMove(rightButton, ref deltaPosition, right);
+            CheckMove(leftButton, ref deltaPosition, -right);
 
             if (moving)
             {
+                // Logarithmic feel: the speed you can reach scales with how
+                // much open space is ahead of you, so a held key crosses
+                // roughly the same *proportion* of your surroundings whether
+                // you're skimming a moon's surface or crossing empty space
+                // between planets - and you naturally slow down as you
+                // approach something instead of blowing through it.
+                float scaleDistance = GetScaleDistance(deltaPosition);
+                float targetSpeed = scaleDistance * moveSpeedFraction;
+
                 if (moving != lastMoving)
-                    currentSpeed = initialSpeed;
+                {
+                    currentSpeed = Mathf.Min(initialSpeed, targetSpeed);
+                }
 
+                currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, targetSpeed * speedRampSharpness * Time.deltaTime);
 
-
-                transform.position += deltaPosition * currentSpeed * Time.deltaTime;
+                transform.position += deltaPosition.normalized * currentSpeed * Time.deltaTime;
             }
             else currentSpeed = 0f;
+
+            // Scroll wheel now drives its own logarithmic zoom (see
+            // ZoomPanMode), completely independent of the WASD speed ramp
+            // above - it was getting entangled with currentSpeed before.
+            ZoomPanMode();
         }
 
         if (allowMiddleClickPanning && Input.GetMouseButtonDown(2))
@@ -554,6 +645,34 @@ public class CameraController : MonoBehaviour
         }
     }
 
+    // Same idea as orbit-mode Zoom(): step size scales with however much
+    // space is ahead of you, and clips against whatever you're approaching
+    // so a fast zoom-in can't overshoot through it. This replaces the old
+    // scroll handling that piggybacked on the WASD speed ramp.
+    private void ZoomPanMode()
+    {
+        float scroll = Input.GetAxis("Mouse ScrollWheel");
+        if (scroll == 0f) return;
+
+        Vector3 direction = transform.forward;
+        bool hitSomething = Physics.Raycast(transform.position, direction, out RaycastHit hit,
+            scaleRaycastMaxDistance, ~0, QueryTriggerInteraction.Ignore);
+        float aheadDistance = hitSomething ? hit.distance : openSpaceScaleDistance;
+
+        float stepDistance = Mathf.Max(aheadDistance, minScaleDistance);
+        Vector3 movement = direction * stepDistance * scroll * normalZoomSpeed;
+
+        bool zoomingIn = scroll > 0f;
+        if (zoomingIn && hitSomething)
+        {
+            float requestedDistance = movement.magnitude;
+            float allowedDistance = Mathf.Max(0f, hit.distance - minZoomClipDistance);
+            movement = movement.normalized * Mathf.Min(requestedDistance, allowedDistance);
+        }
+
+        transform.position += movement;
+    }
+
 
     private void BeginMiddleMousePan()
     {
@@ -570,17 +689,23 @@ public class CameraController : MonoBehaviour
         float normalizedDX = pixelDelta.x / Screen.width;
         float normalizedDY = pixelDelta.y / Screen.height;
 
-        float worldDX = normalizedDX * middleClickPanningSpeed;
-        float worldDY = normalizedDY * middleClickPanningSpeed;
+        // Same logarithmic idea as WASD/zoom: scale by how much open space
+        // is around you right now instead of a flat units-per-drag amount -
+        // this was the one control still going flat and slow when zoomed out.
+        float scaleDistance = GetScaleDistance(transform.forward);
+        float effectivePanSpeed = scaleDistance * middleClickPanFraction;
+
+        float worldDX = normalizedDX * effectivePanSpeed;
+        float worldDY = normalizedDY * effectivePanSpeed;
 
         transform.position -= (transform.right * worldDX) + (transform.up * worldDY);
 
         panLastMouse = Input.mousePosition;
     }
 
-    private void CheckMove(KeyCode keyCode, ref Vector3 deltaPosition, Vector3 directionVector, bool forceForward, bool forceBackward)
+    private void CheckMove(KeyCode keyCode, ref Vector3 deltaPosition, Vector3 directionVector)
     {
-        if (Input.GetKey(keyCode) || forceBackward || forceForward)
+        if (Input.GetKey(keyCode))
         {
             moving = true;
             deltaPosition += directionVector;

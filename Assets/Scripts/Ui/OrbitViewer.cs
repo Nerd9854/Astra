@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 using static PhysicsManager;
@@ -251,7 +252,24 @@ public class OrbitViewer : MonoBehaviour
         return new double3(vx, vy, vz);
     }
 
+    public static float closestPoint(Vector3[] points, Vector3 target, float scaleDiff)
+    {
+        float closestSqrDistance = float.MaxValue;
+        Vector3 closestPoint = new Vector3();
 
+        for (int i = 0; i < points.Length; i++)
+        {
+            float sqrDistance = (points[i] - target).sqrMagnitude;
+
+            if (sqrDistance < closestSqrDistance)
+            {
+                closestSqrDistance = sqrDistance;
+                closestPoint = points[i];
+            }
+        }
+        Debug.Log(Vector3.Distance(Vector3.zero / scaleDiff, closestPoint));
+        return Vector3.Distance(Vector3.zero / scaleDiff, closestPoint);
+    }
 
     public float relativeWidth;
     public float cutttoff;
@@ -263,12 +281,14 @@ public class OrbitViewer : MonoBehaviour
 
         for (int i = 0; i < numOfTrails; i++)
         {
-            float dist = Vector3.Distance(cam.transform.position / scaleDiff, bodies[i].position / scaleDiff);
+            Vector3[] points = calcAngle(keplarinElements[i], 100);
+            Debug.Log($"{cam.transform.position / scaleDiff}, {bodies[i].position / scaleDiff} = {Vector3.Distance(cam.transform.position / scaleDiff, bodies[i].position / scaleDiff)}");
+            float dist = closestPoint(points, cam.transform.position, scaleDiff);//Vector3.Distance(cam.transform.position / scaleDiff, bodies[i].position / scaleDiff);
             float normDist = (dist * relativeWidth);
             if (normDist < cutttoff) normDist = cutttofff;
             trails[i].startWidth = normDist;
 
-            trails[i].SetPositions(calcAngle(keplarinElements[i], 100));
+            trails[i].SetPositions(points);
         }
     }
 }
