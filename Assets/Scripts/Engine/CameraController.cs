@@ -83,18 +83,21 @@ public class CameraController : MonoBehaviour
     private Quaternion lastRawRotation;
 
     // ---- Following a moving orbit target ----
+    // FIX 1: following is now "pin the camera to the target's true position + its current
+    // offset from the pivot" (see FinalizeFrame), instead of adding up per-frame deltas of
+    // target.worldPosition. Nothing to drift, and no bookkeeping to get out of sync.
     [Header("Follow Moving Orbit Target")]
-    [Tooltip("While orbiting (or transitioning into orbit), the camera shifts by however much the target's real worldPosition moves on its own each frame, so a moving planet/moon doesn't slip out from under you. Only applies when target.useWorldPosition is true.")]
+    [Tooltip("While orbiting (or transitioning into orbit), the camera stays pinned to the target's real worldPosition every frame, so a moving planet/moon doesn't slip out from under you. Only applies when target.useWorldPosition is true.")]
     [SerializeField] private bool followMovingTarget = true;
 
-    private double3 lastTargetWorldPosition;
-    private bool hasLastTargetWorldPosition = false;
+    // Deliberate pan / double-click shifts of the pivot, kept as an offset (km) FROM
+    // target.worldPosition instead of being written into it - so they survive your
+    // planet script overwriting target.worldPosition every frame.
+    private double3 pivotOffsetKm;
 
-    // How much of this frame's target.worldPosition change came from our own
-    // NudgeTarget() calls (deliberate pan/click), so FollowTarget() doesn't
-    // double-count movement that's already being applied via the normal
-    // camera-movement path.
-    private double3 nudgeAccumulatorThisFrame;
+    // Frame FinalizeFrame() last ran on, so LateUpdate only acts as a fallback on frames
+    // where camUpdate() wasn't called.
+    private int lastFinalizeFrame = -1;
 
 
     void Awake()
@@ -120,15 +123,18 @@ public class CameraController : MonoBehaviour
         lastRawRotation = transform.rotation;
     }
 
+    // FIX 1: ORDER MATTERS. Each frame, do this in this order:
+    //   1) advance your bodies / write target.worldPosition
+    //   2) camUpdate()   <- input, orbit-follow and worldPos are all final when this returns
+    //   3) place your objects relative to worldPos
+    // If objects get placed BEFORE camUpdate() runs, a moving orbit target will look one frame behind.
     public void camUpdate()
     {
         if (movingToOrbit)
         {
             MoveToOrbit();
-            return;
         }
-
-        if (focusOrbit)
+        else if (focusOrbit)
         {
             HandleFocusMouseInput();
         }
@@ -136,77 +142,72 @@ public class CameraController : MonoBehaviour
         {
             NormalUpdate();
         }
+
+        FinalizeFrame();
     }
 
+    // Fallback only - does nothing on frames where camUpdate() already ran.
     private void LateUpdate()
     {
+        if (lastFinalizeFrame != Time.frameCount)
+        {
+            FinalizeFrame();
+        }
+    }
+
+    private void FinalizeFrame()
+    {
+        lastFinalizeFrame = Time.frameCount;
+
         FrameDeltaPosition = transform.position - anchorPosition;
         FrameDeltaRotation = transform.rotation * Quaternion.Inverse(lastRawRotation);
         lastRawRotation = transform.rotation;
 
-        // Fold this frame's small, precise delta into the big, precise total (real km).
-        worldPos += new double3(FrameDeltaPosition.x, FrameDeltaPosition.y, FrameDeltaPosition.z) * kmPerUnit;
-
-        FollowTarget();
+        if (ShouldFollowTarget())
+        {
+            // Orbiting something that may be moving on its own. Instead of adding up
+            // deltas, pin the camera to: (target's true position RIGHT NOW) + (where the
+            // camera sits relative to the pivot after this frame's orbit / zoom / pan).
+            // target.transform.position still holds last frame's pivot position here, so
+            // this keeps the exact same offset while the target itself moves.
+            Vector3 offsetFromPivot = FrameDeltaPosition - target.transform.position;
+            worldPos = target.worldPosition + pivotOffsetKm + ToDouble3(offsetFromPivot) * kmPerUnit;
+        }
+        else
+        {
+            // Free flight: fold this frame's small, precise delta into the big, precise total (real km).
+            worldPos += ToDouble3(FrameDeltaPosition) * kmPerUnit;
+        }
 
         SyncTargetTransform();
-
-        // Whatever nudge happened this frame has now been accounted for by
-        // FollowTarget - clear it before the next frame.
-        nudgeAccumulatorThisFrame = double3.zero;
 
         // The camera never repositions anything else in the scene - worldPos
         // above is all any other script needs to place itself relative to the camera.
         transform.position = anchorPosition;
     }
 
+    private bool ShouldFollowTarget()
+    {
+        if (!followMovingTarget || target == null || target.transform == null || !target.useWorldPosition)
+            return false;
+
+        return focusOrbit || movingToOrbit || transitioningToOrbit;
+    }
+
     private void SyncTargetTransform()
     {
         if (target == null || target.transform == null || !target.useWorldPosition) return;
 
-        double3 relativeUnits = (target.worldPosition - worldPos) / kmPerUnit;
+        double3 relativeUnits = (target.worldPosition + pivotOffsetKm - worldPos) / kmPerUnit;
         target.transform.position = new Vector3((float)relativeUnits.x, (float)relativeUnits.y, (float)relativeUnits.z);
     }
 
-    // Keeps the orbit offset (distance + angle) fixed relative to the target
-    // even while the target's true worldPosition is moving on its own -
-    // e.g. a moon actually orbiting its planet. Only the part of the
-    // target's movement that ISN'T from our own NudgeTarget() calls counts,
-    // otherwise panning/clicking during orbit would move the camera twice.
-    private void FollowTarget()
-    {
-        if (!followMovingTarget || target == null || target.transform == null || !target.useWorldPosition)
-        {
-            hasLastTargetWorldPosition = false;
-            return;
-        }
-
-        bool trackingOrbit = focusOrbit || movingToOrbit || transitioningToOrbit;
-
-        if (!trackingOrbit)
-        {
-            // Not orbiting right now - don't carry a stale delta into the
-            // next time orbit mode is entered (that would cause one big jump).
-            hasLastTargetWorldPosition = false;
-            return;
-        }
-
-        if (hasLastTargetWorldPosition)
-        {
-            double3 targetDelta = (target.worldPosition - lastTargetWorldPosition) - nudgeAccumulatorThisFrame;
-            worldPos += targetDelta;
-        }
-
-        lastTargetWorldPosition = target.worldPosition;
-        hasLastTargetWorldPosition = true;
-    }
-
-    // Call this from whatever script assigns a brand-new orbit target (a
-    // different planet/moon), so the first frame after switching doesn't
-    // read as one huge, fake "movement" of the old target.
+    // Kept so existing calls still compile. Call it from whatever script assigns a
+    // brand-new orbit target (a different planet/moon) - it clears any pan/click
+    // offset that belonged to the old one.
     public void ResetFollowTracking()
     {
-        hasLastTargetWorldPosition = false;
+        pivotOffsetKm = double3.zero;
     }
 
     private void NudgeTarget(Vector3 unityDelta)
@@ -215,12 +216,17 @@ public class CameraController : MonoBehaviour
 
         target.transform.position += unityDelta;
 
+        // Stored as an offset from target.worldPosition (not written into it), so it
+        // sticks to the body even if your planet script rewrites worldPosition each frame.
         if (target.useWorldPosition)
         {
-            double3 worldDelta = new double3(unityDelta.x, unityDelta.y, unityDelta.z) * kmPerUnit;
-            target.worldPosition += worldDelta;
-            nudgeAccumulatorThisFrame += worldDelta;
+            pivotOffsetKm += ToDouble3(unityDelta) * kmPerUnit;
         }
+    }
+
+    private static double3 ToDouble3(Vector3 v)
+    {
+        return new double3(v.x, v.y, v.z);
     }
 
     private float NormalizeAngle(float angle)
@@ -239,6 +245,12 @@ public class CameraController : MonoBehaviour
         currentSpeed = 0;
         moving = false;
 
+        // FIX 1: a fresh orbit starts on the target's true position (drops any pan /
+        // double-click offset from a previous orbit), and the pivot transform is refreshed
+        // so the direction below isn't worked out from last frame's stale position.
+        pivotOffsetKm = double3.zero;
+        SyncTargetTransform();
+
         Vector3 direction = transform.position - target.transform.position;
 
         if (direction.magnitude < 0.1f)
@@ -252,7 +264,7 @@ public class CameraController : MonoBehaviour
     private void MoveToOrbit()
     {
         // Recomputed live every frame from the target's current position
-        // (which FollowTarget/SyncTargetTransform already keep correct even
+        // (which FinalizeFrame/SyncTargetTransform already keep correct even
         // while the target is moving) - this is what was causing the
         // "buggy" entry: the old code aimed at a destination point captured
         // once at the start, which went stale if the target kept moving
@@ -645,32 +657,68 @@ public class CameraController : MonoBehaviour
         }
     }
 
-    // Same idea as orbit-mode Zoom(): step size scales with however much
-    // space is ahead of you, and clips against whatever you're approaching
-    // so a fast zoom-in can't overshoot through it. This replaces the old
-    // scroll handling that piggybacked on the WASD speed ramp.
+    // FIX 2: pan-mode zoom.
+    // Same idea as before - step size scales with the space around you, and gets clipped
+    // against whatever you're approaching - but the scale is now limited by the nearest
+    // surface in ANY direction, not just the single ray straight ahead.
     private void ZoomPanMode()
     {
         float scroll = Input.GetAxis("Mouse ScrollWheel");
         if (scroll == 0f) return;
 
-        Vector3 direction = transform.forward;
-        bool hitSomething = Physics.Raycast(transform.position, direction, out RaycastHit hit,
+        // Your objects get re-placed around the camera every frame, but physics only sees
+        // moved transforms after a sync - without this, every query below is measuring
+        // against where the colliders WERE a frame or two ago.
+        Physics.SyncTransforms();
+
+        Vector3 forward = transform.forward;
+        Vector3 moveDir = scroll > 0f ? forward : -forward;   // scroll up = in, scroll down = out
+
+        // Scale: distance to whatever the screen centre is looking at (or open space)...
+        bool hitSomething = Physics.Raycast(transform.position, forward, out RaycastHit hit,
             scaleRaycastMaxDistance, ~0, QueryTriggerInteraction.Ignore);
-        float aheadDistance = hitSomething ? hit.distance : openSpaceScaleDistance;
+        float scaleDistance = hitSomething ? hit.distance : openSpaceScaleDistance;
 
-        float stepDistance = Mathf.Max(aheadDistance, minScaleDistance);
-        Vector3 movement = direction * stepDistance * scroll * normalZoomSpeed;
+        // ...but never bigger than the distance to the nearest surface in any direction.
+        // The old version only looked straight ahead, so a planet beside / below / behind you
+        // (or a horizon far ahead of you) counted as "open space" and the step came out huge.
+        scaleDistance = GetNearestSurfaceDistance(transform.position, scaleDistance);
 
-        bool zoomingIn = scroll > 0f;
-        if (zoomingIn && hitSomething)
+        float step = Mathf.Max(scaleDistance, minScaleDistance) * Mathf.Abs(scroll) * normalZoomSpeed;
+
+        // Clip against whatever is in the direction we're actually moving. Zooming OUT
+        // wasn't clipped before, so backing up into a planet behind you went straight through it.
+        if (Physics.Raycast(transform.position, moveDir, out RaycastHit pathHit,
+            step + minZoomClipDistance, ~0, QueryTriggerInteraction.Ignore))
         {
-            float requestedDistance = movement.magnitude;
-            float allowedDistance = Mathf.Max(0f, hit.distance - minZoomClipDistance);
-            movement = movement.normalized * Mathf.Min(requestedDistance, allowedDistance);
+            step = Mathf.Min(step, Mathf.Max(0f, pathHit.distance - minZoomClipDistance));
         }
 
-        transform.position += movement;
+        transform.position += moveDir * step;
+    }
+
+    // Distance from `origin` to the closest collider in ANY direction, capped at maxDistance.
+    // Unlike a raycast it doesn't care where the camera is pointing. Uses overlap tests, so
+    // it works with every collider type (including non-convex MeshColliders).
+    private float GetNearestSurfaceDistance(Vector3 origin, float maxDistance)
+    {
+        float lo = Mathf.Max(minZoomClipDistance, 0.001f);
+        if (maxDistance <= lo) return maxDistance;
+
+        if (Physics.CheckSphere(origin, lo, ~0, QueryTriggerInteraction.Ignore)) return lo;
+        if (!Physics.CheckSphere(origin, maxDistance, ~0, QueryTriggerInteraction.Ignore)) return maxDistance;
+
+        // Something is between lo and maxDistance. Bisect in log space so the answer is
+        // equally precise whether it's 0.5 units away or 500,000 (12 steps = ~0.4%).
+        float hi = maxDistance;
+        for (int i = 0; i < 12; i++)
+        {
+            float mid = Mathf.Sqrt(lo * hi);
+            if (Physics.CheckSphere(origin, mid, ~0, QueryTriggerInteraction.Ignore)) hi = mid;
+            else lo = mid;
+        }
+
+        return hi;
     }
 
 

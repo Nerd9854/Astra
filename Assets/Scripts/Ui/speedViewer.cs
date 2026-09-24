@@ -19,7 +19,8 @@ public class speedViewer : MonoBehaviour
     public int targetSpeedMulti = 60;
     private int[] multi = new int[] { 60, 3600, 86400, 2592000 };
     private string[] months = new string[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-    DateTime dateT;
+    public DateTime dateT;
+    public bool overide;
 
     void OnEnable()
     {
@@ -71,7 +72,10 @@ public class speedViewer : MonoBehaviour
 
     private void updatePhysicsMan()
     {
-        physicsManager.maxH = math.max(targetSpeedS * targetSpeedMulti, 1);
+        if (!overide)
+        {
+            physicsManager.maxH = math.max((targetSpeedS * targetSpeedMulti) * Time.deltaTime, 1);
+        }
     }
 
     public double timeSinceStart = 0;
@@ -81,7 +85,10 @@ public class speedViewer : MonoBehaviour
     {
         timeSinceStart += physicsManager.h;
         currentSpeed.text = $"{(physicsManager.h / targetSpeedMulti) / Time.deltaTime:F2}"; //fancy stuff
-        physicsManager.maxH = math.max((targetSpeedS * targetSpeedMulti) / Time.deltaTime, 1);
+        if(!overide)
+        {
+            physicsManager.maxH = math.max((targetSpeedS * targetSpeedMulti) * Time.deltaTime, 1);
+        }
 
         DateTime newDateT = dateT.AddSeconds(timeSinceStart);
         currentDate = newDateT;

@@ -94,7 +94,7 @@ public class BodyManager : MonoBehaviour
             }
             catch
             {
-                Debug.Log("Not moving spacecraft");
+                //Debug.Log("Not moving spacecraft");
             }
         }
 

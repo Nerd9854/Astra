@@ -6,13 +6,11 @@ using UnityEngine;
 
 public class SpiceExtractor : MonoBehaviour
 {
-    /*public void getPermData()
+    /*public void getData()
     {
         DateTime currentTime = DateTime.Now;
         string timeString = currentTime.ToString("yyyy-MM-ddTHH:mm:ss");
 
-        // Clean, standard C# using an 'out' parameter
-        //SafeSpice.STR2ET_C(timeString, out double currentTimeEt);
 
 
 

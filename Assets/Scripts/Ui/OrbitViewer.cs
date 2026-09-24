@@ -284,7 +284,7 @@ public class OrbitViewer : MonoBehaviour
         {
             Vector3[] points = calcAngle(keplarinElements[i], 100);
             //Debug.Log($"{cam.transform.position / scaleDiff}, {bodies[i].position / scaleDiff} = {Vector3.Distance(cam.transform.position / scaleDiff, bodies[i].position / scaleDiff)}");
-            float dist = closestPoint(points, cam.transform.position, scaleDiff);//Vector3.Distance(cam.transform.position / scaleDiff, bodies[i].position / scaleDiff);
+            float dist = Vector3.Distance(cam.transform.position / scaleDiff, bodies[i].position / scaleDiff);//closestPoint(points, cam.transform.position, scaleDiff);//
             float normDist = (dist * relativeWidth);
             if (normDist < cutttoff) normDist = cutttofff;
             trails[i].startWidth = normDist;

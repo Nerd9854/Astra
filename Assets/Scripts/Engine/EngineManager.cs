@@ -36,7 +36,7 @@ public class EngineManager : MonoBehaviour
     public double g = 0.000000000066743;
 
     private int numOfObjects;
-    void Start()
+    public void simulationStart()
     {
         materalLoader();
         prebadLoader();
@@ -48,6 +48,9 @@ public class EngineManager : MonoBehaviour
 
         UiManager.UiInit();
         exportData.dataExporterInit();
+
+        showWarning.dispalyNotif(2, "Succcsessfully loaded, welcome to ASTRA!");
+        showWarning.dispalyNotif(1, "Stuck? Click the help tab for tutorials + more");
     }
 
     private void materalLoader() //this converts each materal(and prefab in the otehr one) into a array and a lookup diconary so i can say 'Earth' and it gives me earhts index

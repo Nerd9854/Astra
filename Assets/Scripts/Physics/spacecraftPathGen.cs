@@ -13,6 +13,7 @@ public class spacecraftPathGen : MonoBehaviour
     public OrbitViewer orbitViewer;
     public EngineManager engineManager;
     public PhysicsManager physicsManager;
+    public speedViewer speedViewer;
     PhysicsManager.physicsObject sunObj;
 
 
