@@ -56,11 +56,14 @@ public class BodyManager : MonoBehaviour
     }
 
     private bool spacecraftActive = true;
+    private static readonly int camPosID = Shader.PropertyToID("_CamPos");
     public int temp;
     public void updateBodys()
     {
         double3 worldpos = cam.worldPos;
         double scale = (double)SceneManager.scale;
+        Vector3 camPosScaled = (float3)(worldpos / scale);
+        Shader.SetGlobalVector(camPosID, camPosScaled);
 
         int currIndex = 0;
         foreach (GameObject body in SceneManager.allBodys.Values)
