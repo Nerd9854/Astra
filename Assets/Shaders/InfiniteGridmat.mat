@@ -93,7 +93,7 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _EnvironmentReflections: 1
-    - _Fade_dist: 10000000
+    - _Fade_dist: 2
     - _Faderad: 10000
     - _GlossMapScale: 0
     - _Glossiness: 0
@@ -103,13 +103,14 @@ Material:
     - _MajorThick: 1
     - _Majorevery: 10
     - _Metallic: 0
+    - _MinFade: 300
     - _OcclusionStrength: 1
     - _Parallax: 0.005
     - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
     - _Scale: 59.6
-    - _Size: 1
+    - _Size: 12.54
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1

@@ -18,7 +18,7 @@ public class CameraController : MonoBehaviour
     [Serializable]
     public class WorldTarget
     {
-        [Tooltip("Local Unity Transform used for all orbit/pan/zoom math (RotateAround, Lerp, etc). Assign any empty GameObject to use as the pivot.")]
+        [Tooltip("Local Unity Transform used for all orbit/pan/zoom math (RotateAround, Lerp, etc). Assign any EMPTY GameObject to use as the pivot - don't assign the planet's own transform, the planet script and this script would both be writing to it.")]
         public Transform transform;
 
         [Tooltip("If true, 'transform' position is recalculated every frame from worldPosition and the camera's worldPos - stays correct at any distance from the origin. If false, transform is left exactly as assigned/moved (plain local pivot - original behaviour).")]
@@ -83,9 +83,8 @@ public class CameraController : MonoBehaviour
     private Quaternion lastRawRotation;
 
     // ---- Following a moving orbit target ----
-    // FIX 1: following is now "pin the camera to the target's true position + its current
-    // offset from the pivot" (see FinalizeFrame), instead of adding up per-frame deltas of
-    // target.worldPosition. Nothing to drift, and no bookkeeping to get out of sync.
+    // Following is "pin the camera to the target's true position + its current
+    // offset from the pivot" (see FinalizeFrame), instead of adding up per-frame deltas.
     [Header("Follow Moving Orbit Target")]
     [Tooltip("While orbiting (or transitioning into orbit), the camera stays pinned to the target's real worldPosition every frame, so a moving planet/moon doesn't slip out from under you. Only applies when target.useWorldPosition is true.")]
     [SerializeField] private bool followMovingTarget = true;
@@ -121,15 +120,23 @@ public class CameraController : MonoBehaviour
         transform.position = anchorPosition;
 
         lastRawRotation = transform.rotation;
+
+        ResetScaleMemory();
     }
 
-    // FIX 1: ORDER MATTERS. Each frame, do this in this order:
+    // ORDER MATTERS. Each frame, do this in this order:
     //   1) advance your bodies / write target.worldPosition
     //   2) camUpdate()   <- input, orbit-follow and worldPos are all final when this returns
     //   3) place your objects relative to worldPos
     // If objects get placed BEFORE camUpdate() runs, a moving orbit target will look one frame behind.
     public void camUpdate()
     {
+        // Your objects were re-placed around the camera after last frame's camUpdate(), but
+        // Unity only pushes moved transforms into the physics world on a physics step (or when
+        // told to). Without this, every raycast / overlap test below measures against where the
+        // colliders WERE - which is what made things go wrong around moving planets.
+        Physics.SyncTransforms();
+
         if (movingToOrbit)
         {
             MoveToOrbit();
@@ -170,7 +177,9 @@ public class CameraController : MonoBehaviour
             // camera sits relative to the pivot after this frame's orbit / zoom / pan).
             // target.transform.position still holds last frame's pivot position here, so
             // this keeps the exact same offset while the target itself moves.
-            Vector3 offsetFromPivot = FrameDeltaPosition - target.transform.position;
+            // (Both positions are in the same frame - anchorPosition included - so this
+            // is also correct when anchorPosition isn't zero.)
+            Vector3 offsetFromPivot = transform.position - target.transform.position;
             worldPos = target.worldPosition + pivotOffsetKm + ToDouble3(offsetFromPivot) * kmPerUnit;
         }
         else
@@ -198,8 +207,9 @@ public class CameraController : MonoBehaviour
     {
         if (target == null || target.transform == null || !target.useWorldPosition) return;
 
+        // Pivot expressed relative to the camera, which sits at anchorPosition.
         double3 relativeUnits = (target.worldPosition + pivotOffsetKm - worldPos) / kmPerUnit;
-        target.transform.position = new Vector3((float)relativeUnits.x, (float)relativeUnits.y, (float)relativeUnits.z);
+        target.transform.position = anchorPosition + new Vector3((float)relativeUnits.x, (float)relativeUnits.y, (float)relativeUnits.z);
     }
 
     // Kept so existing calls still compile. Call it from whatever script assigns a
@@ -244,8 +254,9 @@ public class CameraController : MonoBehaviour
 
         currentSpeed = 0;
         moving = false;
+        zoomPending = 0f;
 
-        // FIX 1: a fresh orbit starts on the target's true position (drops any pan /
+        // A fresh orbit starts on the target's true position (drops any pan /
         // double-click offset from a previous orbit), and the pivot transform is refreshed
         // so the direction below isn't worked out from last frame's stale position.
         pivotOffsetKm = double3.zero;
@@ -354,6 +365,7 @@ public class CameraController : MonoBehaviour
 
         currentSpeed = 0;
         moving = false;
+        zoomPending = 0f;
 
         justExitedOrbit = true;
 
@@ -468,16 +480,16 @@ public class CameraController : MonoBehaviour
     [SerializeField] private float initialSpeed = 10f;
 
     [Header("Pan Mode - Logarithmic Speed")]
-    [Tooltip("Fraction of the open space ahead of you that WASD flight speed targets each second (1.0 = roughly cross that distance in a second at full speed).")]
+    [Tooltip("Fraction of your 'altitude' (distance to the nearest surface) that WASD flight speed targets each second (1.0 = roughly cross that distance in a second at full speed).")]
     [SerializeField] private float moveSpeedFraction = 1f;
-    [Tooltip("How sharply currentSpeed ramps toward the target speed, as a fraction of the target speed per second. Higher = snappier response when the scale ahead of you changes.")]
+    [Tooltip("How sharply currentSpeed ramps UP toward the target speed, as a fraction of the target speed per second. Slowing down is always instant, so you can't carry speed into something.")]
     [SerializeField] private float speedRampSharpness = 3f;
-    [Tooltip("Floor for the raycast distance used to scale WASD speed and pan-mode zoom (Unity units) - stops speed/zoom collapsing to near-zero right next to small objects.")]
+    [Tooltip("Floor for altitude used to scale WASD speed, zoom and panning (Unity units) - stops everything collapsing to near-zero right next to small objects.")]
     [SerializeField] private float minScaleDistance = 0.5f;
-    [Tooltip("Used as the scale distance when there's nothing ahead to hit (e.g. deep space) - keep this large so open-space flight/zoom stays fast.")]
-    [SerializeField] private float openSpaceScaleDistance = 5000f;
-    [Tooltip("How far the reference raycast checks, in Unity units.")]
+    [Tooltip("Radius of the 'any direction' search for the nearest surface (Unity units). Beyond this, altitude is remembered from the last time something was in range and grows as you fly away (see ResetScaleMemory).")]
     [SerializeField] private float scaleRaycastMaxDistance = 1000000f;
+    [Tooltip("Stops WASD flight and zoom passing through collider surfaces.")]
+    [SerializeField] private bool clipMovementAgainstSurfaces = true;
 
 
 
@@ -488,9 +500,14 @@ public class CameraController : MonoBehaviour
     [SerializeField] private bool cursorVisibleByDefault = true;
 
     [SerializeField] private bool allowMiddleClickPanning = true;
-    [Tooltip("Fraction of the open space ahead of you that a full screen-width middle-click drag pans - same logarithmic idea as WASD/zoom, so this no longer goes flat and slow when zoomed out.")]
+    [Tooltip("Fraction of your altitude that a full screen-width middle-click drag pans - same logarithmic idea as WASD/zoom.")]
     [Range(0.05f, 5f)][SerializeField] private float middleClickPanFraction = 0.5f;
+
+    [Header("Pan Mode - Scroll Zoom")]
+    [Tooltip("Zoom strength. One scroll tick closes (or opens) roughly this much x 0.1 of your altitude.")]
     [SerializeField] private float normalZoomSpeed = 2;
+    [Tooltip("How quickly scroll input is spent, per second. Higher = snappier, lower = smoother glide. 0 = apply instantly. Because altitude is re-measured every frame while gliding, the glide naturally brakes as you close on a surface.")]
+    [SerializeField] private float zoomSmoothing = 12f;
 
     private Vector3 panLastMouse;
 
@@ -512,6 +529,17 @@ public class CameraController : MonoBehaviour
     private bool moving = false;
     private bool togglePressed = false;
 
+    // Scroll input waiting to be spent, as a signed "fraction of altitude" (+ = in, - = out).
+    private float zoomPending = 0f;
+
+    // ---- Remembered altitude (for when nothing is within scaleRaycastMaxDistance) ----
+    // The last place we actually measured a nearest-surface distance, and what it was.
+    // Out of range, altitude <= that distance + how far we've moved from that spot
+    // (triangle inequality). It depends only on POSITION, not on where you're looking
+    // or what path you took, so turning around can't make it forget.
+    private double3 scaleRefWorldPos;
+    private float scaleRefDistance;
+
     [SerializeField] private float minAngle = -80f;
     [SerializeField] private float maxAngle = 80f;
 
@@ -526,22 +554,105 @@ public class CameraController : MonoBehaviour
         }
     }
 
-    // Distance to whatever's ahead of you in a given direction - the same
-    // idea orbit-mode Zoom() uses for its target, just aimed wherever you're
-    // currently flying/looking instead of at a fixed pivot. Used to scale
-    // both WASD speed and pan-mode scroll zoom so they feel proportional to
-    // your surroundings at any scale, instead of a flat units/second.
+    // Call this after teleporting the camera (writing worldPos directly), otherwise the
+    // remembered altitude thinks you flew all that way.
+    public void ResetScaleMemory()
+    {
+        scaleRefWorldPos = worldPos;
+        scaleRefDistance = scaleRaycastMaxDistance;
+    }
+
+    // The camera's true position right now, including any movement already applied to the
+    // transform this frame but not yet folded into worldPos by FinalizeFrame().
+    private double3 TruePosition()
+    {
+        return worldPos + ToDouble3(transform.position - anchorPosition) * kmPerUnit;
+    }
+
+    // "Altitude": how far you are from the nearest thing, used to scale WASD speed, scroll
+    // zoom and middle-click pan so they all feel proportional at any scale.
+    //
+    // It's the nearest surface in ANY direction (so looking around never changes it), capped
+    // by whatever the ray in `direction` hits at ANY range (so approaching something far away
+    // still slows you down before you reach it).
     private float GetScaleDistance(Vector3 direction)
     {
         if (direction.sqrMagnitude < 0.0001f) direction = transform.forward;
+        direction.Normalize();
 
-        if (Physics.Raycast(transform.position, direction.normalized, out RaycastHit hit,
-            scaleRaycastMaxDistance, ~0, QueryTriggerInteraction.Ignore))
+        float scale = GetNearestSurfaceOrRemembered();
+
+        if (Physics.Raycast(transform.position, direction, out RaycastHit hit,
+            Mathf.Infinity, ~0, QueryTriggerInteraction.Ignore))
         {
-            return Mathf.Max(hit.distance, minScaleDistance);
+            scale = Mathf.Min(scale, hit.distance);
         }
 
-        return openSpaceScaleDistance;
+        return Mathf.Max(scale, minScaleDistance);
+    }
+
+    private float GetNearestSurfaceOrRemembered()
+    {
+        double3 pos = TruePosition();
+
+        if (TryGetNearestSurfaceDistance(transform.position, scaleRaycastMaxDistance, out float measured))
+        {
+            scaleRefWorldPos = pos;
+            scaleRefDistance = measured;
+            return measured;
+        }
+
+        // Nothing in range, so we're at least scaleRaycastMaxDistance from everything.
+        // Grow from the last measurement by however far we've moved since then.
+        float travelled = (float)(math.length(pos - scaleRefWorldPos) / kmPerUnit);
+        return Mathf.Max(scaleRefDistance + travelled, scaleRaycastMaxDistance);
+    }
+
+    // Distance from `origin` to the closest collider in ANY direction. Returns false if
+    // nothing is within maxDistance. Uses overlap tests, so it works with every collider
+    // type (including non-convex MeshColliders) and doesn't care where the camera points.
+    private bool TryGetNearestSurfaceDistance(Vector3 origin, float maxDistance, out float result)
+    {
+        float lo = Mathf.Max(minZoomClipDistance, 0.001f);
+        result = maxDistance;
+
+        if (maxDistance <= lo) return false;
+
+        if (Physics.CheckSphere(origin, lo, ~0, QueryTriggerInteraction.Ignore))
+        {
+            result = lo;
+            return true;
+        }
+
+        if (!Physics.CheckSphere(origin, maxDistance, ~0, QueryTriggerInteraction.Ignore))
+            return false;
+
+        // Something is between lo and maxDistance. Bisect in log space so the answer is
+        // equally precise whether it's 0.5 units away or 500,000 (14 steps = well under 1%).
+        float hi = maxDistance;
+        for (int i = 0; i < 14; i++)
+        {
+            float mid = Mathf.Sqrt(lo * hi);
+            if (Physics.CheckSphere(origin, mid, ~0, QueryTriggerInteraction.Ignore)) hi = mid;
+            else lo = mid;
+        }
+
+        result = hi;
+        return true;
+    }
+
+    // How far we can actually move along `dir` this frame without ending up inside a surface.
+    private float ClipStepAgainstSurfaces(Vector3 dir, float step)
+    {
+        if (!clipMovementAgainstSurfaces) return step;
+
+        if (Physics.Raycast(transform.position, dir, out RaycastHit hit,
+            step + minZoomClipDistance, ~0, QueryTriggerInteraction.Ignore))
+        {
+            return Mathf.Min(step, Mathf.Max(0f, hit.distance - minZoomClipDistance));
+        }
+
+        return step;
     }
 
     private void NormalUpdate()
@@ -601,12 +712,11 @@ public class CameraController : MonoBehaviour
 
             if (moving)
             {
-                // Logarithmic feel: the speed you can reach scales with how
-                // much open space is ahead of you, so a held key crosses
-                // roughly the same *proportion* of your surroundings whether
-                // you're skimming a moon's surface or crossing empty space
-                // between planets - and you naturally slow down as you
-                // approach something instead of blowing through it.
+                // Logarithmic feel: the speed you can reach scales with your altitude, so a
+                // held key crosses roughly the same *proportion* of your surroundings whether
+                // you're skimming a moon's surface or crossing the gap between planets.
+                // Altitude no longer depends on where you're looking, so flying backwards
+                // away from a planet speeds up exactly like flying towards one slows down.
                 float scaleDistance = GetScaleDistance(deltaPosition);
                 float targetSpeed = scaleDistance * moveSpeedFraction;
 
@@ -615,15 +725,19 @@ public class CameraController : MonoBehaviour
                     currentSpeed = Mathf.Min(initialSpeed, targetSpeed);
                 }
 
+                // Speeding up is a ramp, slowing down is instant: never carry more speed than
+                // your surroundings allow (e.g. flying in from deep space at huge speed).
+                currentSpeed = Mathf.Min(currentSpeed, targetSpeed);
                 currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, targetSpeed * speedRampSharpness * Time.deltaTime);
 
-                transform.position += deltaPosition.normalized * currentSpeed * Time.deltaTime;
+                Vector3 moveDir = deltaPosition.normalized;
+                float step = ClipStepAgainstSurfaces(moveDir, currentSpeed * Time.deltaTime);
+                transform.position += moveDir * step;
             }
             else currentSpeed = 0f;
 
-            // Scroll wheel now drives its own logarithmic zoom (see
-            // ZoomPanMode), completely independent of the WASD speed ramp
-            // above - it was getting entangled with currentSpeed before.
+            // Scroll wheel drives its own logarithmic zoom (see ZoomPanMode), completely
+            // independent of the WASD speed ramp above.
             ZoomPanMode();
         }
 
@@ -657,68 +771,42 @@ public class CameraController : MonoBehaviour
         }
     }
 
-    // FIX 2: pan-mode zoom.
-    // Same idea as before - step size scales with the space around you, and gets clipped
-    // against whatever you're approaching - but the scale is now limited by the nearest
-    // surface in ANY direction, not just the single ray straight ahead.
+    // Pan-mode scroll zoom.
+    //  - Scroll ticks are banked in zoomPending and spent over a few frames (zoomSmoothing).
+    //    Altitude is re-measured every frame they're spent, so a fast spin of the wheel
+    //    brakes itself as you close on a surface instead of slamming into it.
+    //  - Each spend moves you a fraction of your altitude, 1 - e^-amount. That's the same as
+    //    before for normal ticks, but can never exceed 100% of the distance however hard the
+    //    wheel is spun (a burst of ticks in one frame used to cover the whole gap).
+    //  - Altitude comes from GetScaleDistance, so it no longer changes with where you look.
     private void ZoomPanMode()
     {
-        float scroll = Input.GetAxis("Mouse ScrollWheel");
-        if (scroll == 0f) return;
+        zoomPending += Input.GetAxis("Mouse ScrollWheel") * normalZoomSpeed;
+        if (zoomPending == 0f) return;
 
-        // Your objects get re-placed around the camera every frame, but physics only sees
-        // moved transforms after a sync - without this, every query below is measuring
-        // against where the colliders WERE a frame or two ago.
-        Physics.SyncTransforms();
+        float amount = zoomSmoothing > 0f
+            ? zoomPending * (1f - Mathf.Exp(-zoomSmoothing * Time.deltaTime))
+            : zoomPending;
+        zoomPending -= amount;
 
-        Vector3 forward = transform.forward;
-        Vector3 moveDir = scroll > 0f ? forward : -forward;   // scroll up = in, scroll down = out
-
-        // Scale: distance to whatever the screen centre is looking at (or open space)...
-        bool hitSomething = Physics.Raycast(transform.position, forward, out RaycastHit hit,
-            scaleRaycastMaxDistance, ~0, QueryTriggerInteraction.Ignore);
-        float scaleDistance = hitSomething ? hit.distance : openSpaceScaleDistance;
-
-        // ...but never bigger than the distance to the nearest surface in any direction.
-        // The old version only looked straight ahead, so a planet beside / below / behind you
-        // (or a horizon far ahead of you) counted as "open space" and the step came out huge.
-        scaleDistance = GetNearestSurfaceDistance(transform.position, scaleDistance);
-
-        float step = Mathf.Max(scaleDistance, minScaleDistance) * Mathf.Abs(scroll) * normalZoomSpeed;
-
-        // Clip against whatever is in the direction we're actually moving. Zooming OUT
-        // wasn't clipped before, so backing up into a planet behind you went straight through it.
-        if (Physics.Raycast(transform.position, moveDir, out RaycastHit pathHit,
-            step + minZoomClipDistance, ~0, QueryTriggerInteraction.Ignore))
+        // Flush the long tail of the exponential rather than creeping forever.
+        if (Mathf.Abs(zoomPending) < 1e-4f)
         {
-            step = Mathf.Min(step, Mathf.Max(0f, pathHit.distance - minZoomClipDistance));
+            amount += zoomPending;
+            zoomPending = 0f;
         }
+
+        if (amount == 0f) return;
+
+        Vector3 moveDir = amount > 0f ? transform.forward : -transform.forward;   // scroll up = in, scroll down = out
+
+        float altitude = GetScaleDistance(moveDir);
+        float step = altitude * (1f - Mathf.Exp(-Mathf.Abs(amount)));
+
+        // Clip against whatever is in the direction we're actually moving (in OR out).
+        step = ClipStepAgainstSurfaces(moveDir, step);
 
         transform.position += moveDir * step;
-    }
-
-    // Distance from `origin` to the closest collider in ANY direction, capped at maxDistance.
-    // Unlike a raycast it doesn't care where the camera is pointing. Uses overlap tests, so
-    // it works with every collider type (including non-convex MeshColliders).
-    private float GetNearestSurfaceDistance(Vector3 origin, float maxDistance)
-    {
-        float lo = Mathf.Max(minZoomClipDistance, 0.001f);
-        if (maxDistance <= lo) return maxDistance;
-
-        if (Physics.CheckSphere(origin, lo, ~0, QueryTriggerInteraction.Ignore)) return lo;
-        if (!Physics.CheckSphere(origin, maxDistance, ~0, QueryTriggerInteraction.Ignore)) return maxDistance;
-
-        // Something is between lo and maxDistance. Bisect in log space so the answer is
-        // equally precise whether it's 0.5 units away or 500,000 (12 steps = ~0.4%).
-        float hi = maxDistance;
-        for (int i = 0; i < 12; i++)
-        {
-            float mid = Mathf.Sqrt(lo * hi);
-            if (Physics.CheckSphere(origin, mid, ~0, QueryTriggerInteraction.Ignore)) hi = mid;
-            else lo = mid;
-        }
-
-        return hi;
     }
 
 
@@ -729,17 +817,14 @@ public class CameraController : MonoBehaviour
 
     private void UpdateMiddleMousePan()
     {
-        // Delta since LAST FRAME (not since the drag started) - this is the
-        // fix. Assigning an absolute "total offset since drag start" every
-        // frame kept re-folding the entire cumulative offset into worldPos
-        // every single frame it was held, which was the runaway you were seeing.
+        // Delta since LAST FRAME (not since the drag started), otherwise the whole
+        // cumulative offset gets re-folded into worldPos every frame it's held.
         Vector3 pixelDelta = Input.mousePosition - panLastMouse;
         float normalizedDX = pixelDelta.x / Screen.width;
         float normalizedDY = pixelDelta.y / Screen.height;
 
-        // Same logarithmic idea as WASD/zoom: scale by how much open space
-        // is around you right now instead of a flat units-per-drag amount -
-        // this was the one control still going flat and slow when zoomed out.
+        // Same logarithmic idea as WASD/zoom: scale by your altitude instead of a flat
+        // units-per-drag amount.
         float scaleDistance = GetScaleDistance(transform.forward);
         float effectivePanSpeed = scaleDistance * middleClickPanFraction;
 
