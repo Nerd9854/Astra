@@ -103,7 +103,7 @@ Material:
     - _MajorThick: 1
     - _Majorevery: 10
     - _Metallic: 0
-    - _MinFade: 300
+    - _MinFade: 3000
     - _OcclusionStrength: 1
     - _Parallax: 0.005
     - _QueueControl: 0

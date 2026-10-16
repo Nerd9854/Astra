@@ -25,7 +25,7 @@ public class GridMan : MonoBehaviour
         double3 worldpos = cam.worldPos;
         Vector3 camPosScaled = (float3)(worldpos / sceneManager.scale);
         Shader.SetGlobalVector(camPosID, camPosScaled);
-        double dist = (cam.worldPos.y / camScale);
+        double dist = (math.abs(cam.worldPos.y) / camScale);
         Shader.SetGlobalFloat(gridSizeID, (float)math.max(minV, math.pow(modthing, math.floor(math.log(dist) / math.log(modthing)))));
 
 
