@@ -35,7 +35,7 @@ public class SpacecraftManager : MonoBehaviour
         bodyLabeler.spacecraftTransform = spacecraft.transform;
         spacecraftActive = true;
         missionPlanner.Init();
-        testStart();
+        //testStart();
     }
 
     private void testStart()
