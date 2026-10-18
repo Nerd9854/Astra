@@ -1,8 +1,11 @@
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Double;
+using Unity.Burst;
+using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 
+[BurstCompile]
 public class PhysicsManager : MonoBehaviour
 {
     //physics = fast
@@ -21,8 +24,9 @@ public class PhysicsManager : MonoBehaviour
         public double3 pos;
         public double3 vel;
         public double3 acc;
+        public double3 posLo;
         public double3 a0;
-        public double3[] predictedPos = new double3[7];
+        public double3[] predictedDisp = new double3[7];
         public double3[] poly = new double3[7];
         public double3[] sampledAcc = new double3[7];
         public double mass; //GM not Kg
@@ -138,7 +142,7 @@ public class PhysicsManager : MonoBehaviour
                 for (int i = 0; i < 7; i++)
                 {
                     double tau = ratios[i] * h;
-                    obj.predictedPos[i] = predictPos(obj, tau);
+                    obj.predictedDisp[i] = predictDisp(obj, ratios[i] * h);
                 }
             }
 
@@ -202,7 +206,10 @@ public class PhysicsManager : MonoBehaviour
 
         foreach (physicsObject obj in fullObjData)
         {
-            obj.pos = predictPos(obj, h);
+            double3 y = predictDisp(obj, h) + obj.posLo;
+            double3 newPos = obj.pos + y;
+            obj.posLo = y - (newPos - obj.pos);
+            obj.pos = newPos;
             obj.vel = predictVel(obj, h);
         }
 
@@ -234,7 +241,7 @@ public class PhysicsManager : MonoBehaviour
             for (int j = i + 1; j < fullObjData.Length; j++)
             {
                 physicsObject bj = fullObjData[j];
-                double3 diff = bj.pos - bi.pos;
+                double3 diff = (bj.pos - bi.pos) + (bj.posLo - bi.posLo);
                 double dist2 = math.lengthsq(diff);
                 double dist3 = math.max(dist2 * math.sqrt(dist2), 1e-300);
                 double3 diffOverDist3 = diff / dist3;
@@ -263,12 +270,10 @@ public class PhysicsManager : MonoBehaviour
         for (int i = 0; i < fullObjData.Length; i++)
         {
             physicsObject bi = fullObjData[i];
-            double3 posI = bi.predictedPos[stage];
             for (int j = i + 1; j < fullObjData.Length; j++)
             {
                 physicsObject bj = fullObjData[j];
-                double3 diff = bj.predictedPos[stage] - posI;
-                double dist2 = math.lengthsq(diff);
+                double3 diff = (bj.pos - bi.pos) + ((bj.posLo - bi.posLo) + (bj.predictedDisp[stage] - bi.predictedDisp[stage])); double dist2 = math.lengthsq(diff);
                 double dist3 = math.max(dist2 * math.sqrt(dist2), 1e-300);
                 double3 diffOverDist3 = diff / dist3;
                 accBuffer[i] += bj.mass * diffOverDist3;
@@ -294,15 +299,11 @@ public class PhysicsManager : MonoBehaviour
         return deltaV * (dProfile_ds / obj.burnDuration);
     }
 
-    private double3 predictPos(physicsObject obj, double tau)
+    private double3 predictDisp(physicsObject obj, double tau)
     {
         double s = tau / h;
         double3 predAcc = h * h * distMovedByAcc(obj.poly, s);
-        double tau2 = tau * tau;
-        double pX = obj.pos.x + obj.vel.x * tau + 0.5 * obj.a0.x * tau2 + predAcc.x;
-        double pY = obj.pos.y + obj.vel.y * tau + 0.5 * obj.a0.y * tau2 + predAcc.y;
-        double pZ = obj.pos.z + obj.vel.z * tau + 0.5 * obj.a0.z * tau2 + predAcc.z;
-        return new double3(pX, pY, pZ);
+        return obj.vel * tau + 0.5 * obj.a0 * (tau * tau) + predAcc;
     }
 
     private double3 predictVel(physicsObject obj, double tau)

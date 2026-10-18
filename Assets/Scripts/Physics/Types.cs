@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Mathematics;
 
 // ---------------------------------------------------------------------
 // Data model for the multi-leg mission planner (companion to MissionPlanner.cs).
@@ -85,8 +86,8 @@ public class MissionLeg
     public MissionNode NodeA;
     public MissionNode NodeB;
     public double TOF => NodeB.Epoch - NodeA.Epoch;
-    public spacecraftPathGen.Vector3D V_departure; // heliocentric velocity at NodeA
-    public spacecraftPathGen.Vector3D V_arrival;   // heliocentric velocity at NodeB
+    public double3 V_departure; // heliocentric velocity at NodeA
+    public double3 V_arrival;   // heliocentric velocity at NodeB
 }
 
 public class MissionResult

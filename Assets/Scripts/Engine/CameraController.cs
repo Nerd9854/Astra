@@ -415,20 +415,18 @@ public class CameraController : MonoBehaviour
         Vector3 direction = transform.position - target.transform.position;
         if (direction.sqrMagnitude < 0.0001f) direction = -transform.forward;
 
-        // One raycast, reused for both purposes below. Distance-to-pivot
-        // alone isn't enough to slow the step down properly - the pivot is
-        // often a planet's centre, far past the actual surface - so this
-        // also checks the collider itself and uses whichever is closer.
-        bool hitSomething = Physics.Raycast(transform.position, direction.normalized,
-            out RaycastHit hit, direction.magnitude, ~0, QueryTriggerInteraction.Ignore);
+        // The ray has to point from the camera TOWARD the pivot (it used to point away,
+        // so it never saw the planet being orbited). If the pivot sits inside a planet,
+        // this hits that planet's surface, which is what we clip zooming-in against.
+        float pivotDistance = direction.magnitude;
+        bool hitSomething = Physics.Raycast(transform.position, -direction.normalized,
+            out RaycastHit hit, pivotDistance, ~0, QueryTriggerInteraction.Ignore);
 
-        float scaleDistance = hitSomething ? Mathf.Min(direction.magnitude, hit.distance) : direction.magnitude;
-
-        // Step size scales with that distance (feels natural at any scale),
-        // but never shrinks below minZoomStep - that floor is what stops zoom
-        // grinding to a halt near an object, and stops it crawling when
-        // backing back out from close range.
-        float stepDistance = Mathf.Max(scaleDistance, minZoomStep);
+        // Step size still scales with distance to the pivot, exactly as before, so the
+        // feel is unchanged - the surface only ever clips the step, it doesn't scale it.
+        // It never shrinks below minZoomStep, which stops zoom grinding to a halt near
+        // an object and stops it crawling when backing out from close range.
+        float stepDistance = Mathf.Max(pivotDistance, minZoomStep);
         Vector3 movement = direction.normalized * stepDistance * scroll * zoomSpeed;
 
         bool zoomingIn = Vector3.Dot(movement, direction) < 0f;

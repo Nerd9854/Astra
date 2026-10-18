@@ -11,6 +11,7 @@ using static UnityEditor.PlayerSettings;
 public class spacecraftPathGen : MonoBehaviour
 {
     public OrbitViewer orbitViewer;
+    public showWarning showWarning;
     public EngineManager engineManager;
     public PhysicsManager physicsManager;
     public speedViewer speedViewer;
@@ -34,20 +35,16 @@ public class spacecraftPathGen : MonoBehaviour
         double3 initPos = orbitViewer.getPositionAtTime(startBodyKep, t0) - sunObj.pos;
         double3 endPos = orbitViewer.getPositionAtTime(endBodyKep, t0 + tof) - sunObj.pos;
 
-        Vector3D r1 = new Vector3D(initPos.x, initPos.y, initPos.z);
-        Vector3D r2 = new Vector3D(endPos.x, endPos.y, endPos.z);
-
         double3 vBody1 = orbitViewer.getVelocityAtTime(startBodyKep, t0);
 
         try
         {
-            var (v1, v2) = SolveLambert(r1, r2, tof, mu, "prograde");
-            double3 v1d = new double3(v1.X, v1.Y, v1.Z);
-            return math.length(v1d - vBody1);
+            var (v1, v2) = SolveLambert(initPos, endPos, tof, mu, "prograde");
+            return math.length(v1 - vBody1);
         }
         catch (Exception ex)
         {
-            Debug.Log($"Error solving Lambert's problem: {ex.Message}");
+            showWarning.dispalyNotif(0, $"Error solving Lambert's problem: {ex.Message}");
         }
         return 0;
     }
@@ -109,43 +106,16 @@ public class spacecraftPathGen : MonoBehaviour
             physicsManager.fullObjData[engineManager.bodylookup[endBody]].mass,
             sunObj.mass), t0 + tof) - sunObj.pos;
 
-        var (v1, _) = spacecraftPathGen.SolveLambert(
-            new spacecraftPathGen.Vector3D(r1.x, r1.y, r1.z),
-            new spacecraftPathGen.Vector3D(r2.x, r2.y, r2.z),
-            tof, sunObj.mass, "prograde");
+        var (v1, _) = spacecraftPathGen.SolveLambert(r1, r2, tof, sunObj.mass, "prograde");
 
-        physicsManager.commandBurn(craft, new double3(v1.X, v1.Y, v1.Z), 60.0);
+        physicsManager.commandBurn(craft, v1, 60.0);
     }
 
 
-    public struct Vector3D
-    {
-        public double X, Y, Z;
+    public static double Dot(double3 v1, double3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
 
-        public Vector3D(double x, double y, double z)
-        {
-            X = x; Y = y; Z = z;
-        }
+    public static double3 Cross(double3 v1, double3 v2) { return new double3(v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x); }
 
-        public double Length() { return Math.Sqrt(X * X + Y * Y + Z * Z); }
-
-        public static double Dot(Vector3D v1, Vector3D v2) { return v1.X* v2.X + v1.Y * v2.Y + v1.Z * v2.Z; }
-
-        public static Vector3D Cross(Vector3D v1, Vector3D v2)
-        {
-            return new Vector3D(
-                v1.Y * v2.Z - v1.Z * v2.Y,
-                v1.Z * v2.X - v1.X * v2.Z,
-                v1.X * v2.Y - v1.Y * v2.X
-            );
-        }
-
-        public static Vector3D operator -(Vector3D v1, Vector3D v2) => new Vector3D(v1.X - v2.X, v1.Y - v2.Y, v1.Z - v2.Z);
-        public static Vector3D operator *(double scalar, Vector3D v) => new Vector3D(v.X * scalar, v.Y * scalar, v.Z * scalar);
-        public static Vector3D operator /(Vector3D v, double scalar) => new Vector3D(v.X / scalar, v.Y / scalar, v.Z / scalar);
-
-        public override string ToString() => $"[{X:F4}, {Y:F4}, {Z:F4}]";
-    }
 
     public static double StumpffC(double z)
     {
@@ -181,16 +151,16 @@ public class spacecraftPathGen : MonoBehaviour
         }
     }
 
-    public static (Vector3D v1, Vector3D v2) SolveLambert(Vector3D r1Vec, Vector3D r2Vec, double deltaT, double mu, string direction = "prograde")
+    public static (double3 v1, double3 v2) SolveLambert(double3 r1Vec, double3 r2Vec, double deltaT, double mu, string direction = "prograde")
     {
-        double r1 = r1Vec.Length();
-        double r2 = r2Vec.Length();
+        double r1 = math.length(r1Vec);
+        double r2 = math.length(r2Vec);
 
-        double cosDeltaTheta = Vector3D.Dot(r1Vec, r2Vec) / (r1 * r2);
+        double cosDeltaTheta = Dot(r1Vec, r2Vec) / (r1 * r2);
         cosDeltaTheta = Math.Clamp(cosDeltaTheta, -1.0, 1.0);
 
-        Vector3D crossProd = Vector3D.Cross(r1Vec, r2Vec);
-        double crossProdZ = crossProd.Z;
+        double3 crossProd = Cross(r1Vec, r2Vec);
+        double crossProdZ = crossProd.z;
 
         double deltaTheta;
         if (direction.Equals("prograde", StringComparison.OrdinalIgnoreCase))
@@ -280,8 +250,8 @@ public class spacecraftPathGen : MonoBehaviour
         double g = A * Math.Sqrt(y / mu);
         double gDot = 1.0 - y / r2;
 
-        Vector3D v1Vec = (r2Vec - f * r1Vec) / g;
-        Vector3D v2Vec = (gDot * r2Vec - r1Vec) / g;
+        double3 v1Vec = (r2Vec - f * r1Vec) / g;
+        double3 v2Vec = (gDot * r2Vec - r1Vec) / g;
 
         return (v1Vec, v2Vec);
     }

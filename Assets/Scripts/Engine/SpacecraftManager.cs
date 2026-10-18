@@ -35,14 +35,12 @@ public class SpacecraftManager : MonoBehaviour
         bodyLabeler.spacecraftTransform = spacecraft.transform;
         spacecraftActive = true;
         missionPlanner.Init();
-        //testStart();
+        spacecraftPathGen.genStart();
+        testStart();
     }
 
     private void testStart()
     {
-        // Placeholder ship - tune once you have real numbers. WetMass=1750kg, minMass=550kg,
-        // Isp=320s gives a full-tank ceiling of ~3.6 km/s (assuming SI units - see the note in
-        // MissionPlanner.cs about your sim's unit system).
         var config = new SpacecraftConfig
         {
             DryMass = 500,
@@ -50,11 +48,11 @@ public class SpacecraftManager : MonoBehaviour
             PayloadMass = 50,
             Isp = 320,
             Thrust = 500,
-            ObjectiveWeight = 0.3, // lean fuel-optimal, some weight on time
+            ObjectiveWeight = 0.3,
             ArrivalMode = ArrivalMode.OrbitInsertion,
             SearchWindowStart = physicsManager.t,
             SearchWindowEnd = physicsManager.t + 365 * 86400,
-            MaxMissionDuration = 3 * 365 * 86400 // 3 year cap, generous
+            MaxMissionDuration = 3 * 365 * 86400
         };
 
         StartCoroutine(RunTestMissions(config));

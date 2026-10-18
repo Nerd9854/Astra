@@ -156,8 +156,6 @@ public class MissionPlanner : MonoBehaviour
     private double3 GetVel(string bodyName, double epoch) =>
         orbitViewer.getVelocityAtTime(kepCache[bodyName], epoch);
 
-    private static double3 ToD3(spacecraftPathGen.Vector3D v) => new double3(v.X, v.Y, v.Z);
-
     private double GetBodyRadius(string bodyName)
     {
         // TODO: wire this to whatever your Body component exposes, e.g.
@@ -202,12 +200,10 @@ public class MissionPlanner : MonoBehaviour
 
             double3 r1 = GetPos(nodes[i - 1].BodyName, epochs[i - 1]);
             double3 r2 = GetPos(nodes[i].BodyName, epochs[i]);
-            var rv1 = new spacecraftPathGen.Vector3D(r1.x, r1.y, r1.z);
-            var rv2 = new spacecraftPathGen.Vector3D(r2.x, r2.y, r2.z);
 
             try
             {
-                var (v1, v2) = spacecraftPathGen.SolveLambert(rv1, rv2, x[i], sunObj.mass, "prograde");
+                var (v1, v2) = spacecraftPathGen.SolveLambert(r1, r2, x[i], sunObj.mass, "prograde");
                 leg.V_departure = v1;
                 leg.V_arrival = v2;
             }
@@ -269,7 +265,7 @@ public class MissionPlanner : MonoBehaviour
         {
             double3 vArrive = i == 0
                 ? GetVel(nodes[0].BodyName, epochs[0])
-                : ToD3(legs[i - 1].V_arrival);
+                : (legs[i - 1].V_arrival);
 
             double3 vDepart;
             if (i == nodes.Count - 1)
@@ -280,7 +276,7 @@ public class MissionPlanner : MonoBehaviour
             }
             else
             {
-                vDepart = ToD3(legs[i].V_departure);
+                vDepart = (legs[i].V_departure);
             }
 
             costs[i] = math.length(vDepart - vArrive);
@@ -316,8 +312,8 @@ public class MissionPlanner : MonoBehaviour
         {
             if (nodes[i].Type != NodeType.Flyby) continue;
 
-            double3 vArrive = ToD3(legs[i - 1].V_arrival);
-            double3 vDepart = ToD3(legs[i].V_departure);
+            double3 vArrive = (legs[i - 1].V_arrival);
+            double3 vDepart = (legs[i].V_departure);
             double3 vBody = GetVel(nodes[i].BodyName, epochs[i]);
 
             double3 vInfIn = vArrive - vBody;
@@ -446,7 +442,7 @@ public class MissionPlanner : MonoBehaviour
             yield return null;
 
         var craft = physicsManager.addSpacecraft(spawnPos, spawnVel, 0.0);
-        physicsManager.commandBurn(craft, ToD3(legs[0].V_departure), 60.0);
+        physicsManager.commandBurn(craft, (legs[0].V_departure), 60.0);
 
         if (config.ArrivalMode == ArrivalMode.OrbitInsertion)
         {
