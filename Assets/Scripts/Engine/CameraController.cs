@@ -89,6 +89,8 @@ public class CameraController : MonoBehaviour
     [Tooltip("While orbiting (or transitioning into orbit), the camera stays pinned to the target's real worldPosition every frame, so a moving planet/moon doesn't slip out from under you. Only applies when target.useWorldPosition is true.")]
     [SerializeField] private bool followMovingTarget = true;
 
+    public PhysicsManager.physicsObject orbitTar;
+
     // Deliberate pan / double-click shifts of the pivot, kept as an offset (km) FROM
     // target.worldPosition instead of being written into it - so they survive your
     // planet script overwriting target.worldPosition every frame.
@@ -172,6 +174,7 @@ public class CameraController : MonoBehaviour
 
         if (ShouldFollowTarget())
         {
+            updateWorldPos(target);
             // Orbiting something that may be moving on its own. Instead of adding up
             // deltas, pin the camera to: (target's true position RIGHT NOW) + (where the
             // camera sits relative to the pivot after this frame's orbit / zoom / pan).
@@ -203,10 +206,15 @@ public class CameraController : MonoBehaviour
         return focusOrbit || movingToOrbit || transitioningToOrbit;
     }
 
+    private void updateWorldPos(WorldTarget tar)
+    {
+        tar.worldPosition = orbitTar.pos;
+    }
+
     private void SyncTargetTransform()
     {
         if (target == null || target.transform == null || !target.useWorldPosition) return;
-
+        updateWorldPos(target);
         // Pivot expressed relative to the camera, which sits at anchorPosition.
         double3 relativeUnits = (target.worldPosition + pivotOffsetKm - worldPos) / kmPerUnit;
         target.transform.position = anchorPosition + new Vector3((float)relativeUnits.x, (float)relativeUnits.y, (float)relativeUnits.z);

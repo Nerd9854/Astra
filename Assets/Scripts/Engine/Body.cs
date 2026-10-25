@@ -29,7 +29,7 @@ public class Body : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        return;
+        if (radius < 1) this.gameObject.transform.localScale = new Vector3(1, 1, 1);
         if (radius < 1) Debug.Log($"Error {name}({id})'s radius ({radius}) is incorrect or missing");
         if(id == -1) Debug.Log($"Error {name}({id})'s id ({id}) is missing");
         if(bodyName == "unassigned") Debug.Log($"Error {name}({id})'s bodyName ({bodyName}) is missing");

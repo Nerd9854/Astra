@@ -83,6 +83,7 @@ public class speedViewer : MonoBehaviour
     public DateTime currentDate;
     public void speedupdate()
     {
+        if (physicsManager.paused) return;
         timeSinceStart += physicsManager.h;
         currentSpeed.text = $"{(physicsManager.h / targetSpeedMulti) / Time.deltaTime:F2}"; //fancy stuff
         if(!overide)

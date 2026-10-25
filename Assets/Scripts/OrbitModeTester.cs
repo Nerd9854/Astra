@@ -37,14 +37,19 @@ public class OrbitModeTester : MonoBehaviour
                 GameObject objToTarget = spacecraftManager.spacecraft;
                 cameraController.target.transform = objToTarget.transform;
                 cameraController.target.worldPosition = physicsManager.fullObjData[physicsManager.spacecraftID].pos;
+                cameraController.orbitTar = physicsManager.fullObjData[physicsManager.spacecraftID];
                 cameraController.EnterOrbitMode();
             }
             else
             {
                 string gameObj = infoDisplay.target;
-                GameObject objToTarget = sceneManager.allBodys[engineManager.bodylookup[gameObj]];
+                /*GameObject objToTarget = sceneManager.allBodys[engineManager.bodylookup[gameObj]];
                 cameraController.target.transform = objToTarget.transform;
-                cameraController.target.worldPosition = objToTarget.GetComponent<Body>().position;
+                cameraController.target.worldPosition = objToTarget.GetComponent<Body>().position;*/
+                PhysicsManager.physicsObject objToTarget = physicsManager.fullObjData[engineManager.bodylookup[gameObj]];
+                cameraController.target.transform = sceneManager.allBodys[engineManager.bodylookup[gameObj]].transform;
+                cameraController.target.worldPosition = objToTarget.pos;
+                cameraController.orbitTar = objToTarget;
                 cameraController.EnterOrbitMode();
             }
         }

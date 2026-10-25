@@ -110,6 +110,13 @@ public class PhysicsManager : MonoBehaviour
     private bool converged;
     private double maxChange;
 
+    private double[,] binom = new double[8, 8];
+
+    public bool paused = false;
+    public void pauseOrPlay()
+    {
+        paused = paused != true;
+    }
     private void setupMat()
     {
         double[,] vandermondeDat = new double[7, 7];
@@ -123,10 +130,33 @@ public class PhysicsManager : MonoBehaviour
         }
         Matrix<double> vandermondeMatrix = DenseMatrix.OfArray(vandermondeDat);
         invertedVandRaw = vandermondeMatrix.Inverse().ToArray();
+
+        for (int n = 0; n < 8; n++)
+        {
+            binom[n, 0] = 1;
+            for (int m = 1; m <= n; m++) binom[n, m] = binom[n - 1, m - 1] + binom[n - 1, m];
+        }
+    }
+
+    private readonly double3[] polyTmp = new double3[7];
+
+    private void rescalePoly(physicsObject obj, double q)
+    {
+        double qm = 1.0;
+        for (int m = 1; m <= 7; m++)
+        {
+            qm *= q;
+            double3 c = new double3(0, 0, 0);
+            for (int k = m - 1; k < 7; k++) c += binom[k + 1, m] * obj.poly[k];
+            polyTmp[m - 1] = c * qm;
+        }
+        for (int m = 0; m < 7; m++) obj.poly[m] = polyTmp[m];
     }
 
     public void physicsUpdate()
     {
+        if(paused) return;
+
         converged = false;
         iterations = 0;
 
@@ -224,10 +254,12 @@ public class PhysicsManager : MonoBehaviour
             }
         }
 
+        double hOld = h;
+        double hNew = math.clamp(newHProp, hOld * minHChange, hOld * maxHChange);
+        hNew = math.min(math.max(hNew, minH), maxH);
+        foreach (physicsObject obj in fullObjData) rescalePoly(obj, hNew / hOld);
         t = newT;
-        h = math.clamp(newHProp, h * minHChange, h * maxHChange);
-        h = math.max(h, minH);
-        h = math.min(h, maxH);
+        h = hNew;
     }
 
     public double temp = 1e4;
