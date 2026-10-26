@@ -14,11 +14,12 @@ public class UiManager : MonoBehaviour
     public SelectDateMan selectDateMan;
     public GameObject taskbarCanvas;
     public speedViewer speedViewer;
+    public missionPlannerUi missionPlannerUi;
 
     public ShowHideDropDown tab1;
     public ShowHideDropDown tab2;
-    //public ShowHideDropDown tab3;
-    //public ShowHideDropDown tab4;
+    public ShowHideDropDown tab3;
+    public ShowHideDropDown tab4;
 
     public void UiInit()
     {
@@ -28,6 +29,7 @@ public class UiManager : MonoBehaviour
         spacecraftInfoDisplay.infoDisplayInit();
         OrbitViewer.orbitInit();
         OrbtiViewerCamera.camInit();
+        missionPlannerUi.missionPlannerUiStart();
     }
 
     public int frameNum = 1;//skip the first one
@@ -43,6 +45,8 @@ public class UiManager : MonoBehaviour
 
         tab1.buttonUpdate();
         tab2.buttonUpdate();
+        tab3.buttonUpdate();
+        tab4.buttonUpdate();
 
         frameNum = (frameNum + 1) % frameWait;
     }

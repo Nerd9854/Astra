@@ -49,6 +49,7 @@ public class spacecraftPathGen : MonoBehaviour
         return 0;
     }
 
+    /*
     public (double bestT0, double bestTOF, double bestCost) SolveSingleLeg(string startBody, string endBody, double t0Min, double t0Max, double tofMin, double tofMax, int pop = 30, int gens = 100)
     {
         var rng = new System.Random();
@@ -111,7 +112,7 @@ public class spacecraftPathGen : MonoBehaviour
         physicsManager.commandBurn(craft, v1, 60.0);
     }
 
-
+    */
     public static double Dot(double3 v1, double3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
 
     public static double3 Cross(double3 v1, double3 v2) { return new double3(v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x); }
@@ -151,7 +152,9 @@ public class spacecraftPathGen : MonoBehaviour
         }
     }
 
-    public static (double3 v1, double3 v2) SolveLambert(double3 r1Vec, double3 r2Vec, double deltaT, double mu, string direction = "prograde")
+    private double3 impossibleAnswer = new double3(math.NAN, math.NAN, math.NAN);
+
+    public (double3 v1, double3 v2) SolveLambert(double3 r1Vec, double3 r2Vec, double deltaT, double mu, string direction = "prograde")
     {
         double r1 = math.length(r1Vec);
         double r2 = math.length(r2Vec);
@@ -182,7 +185,8 @@ public class spacecraftPathGen : MonoBehaviour
 
         if (A == 0.0 && Math.Abs(deltaTheta - Math.PI) < 1e-8)
         {
-            throw new ArgumentException("180-degree transfer cannot uniquely resolve orbital plane.");
+            showWarning.dispalyNotif(0, "Error solving Lambert's problem:\nTransfer is 180 deg (straight line). Infinite orbital planes fit this path.");
+            return(impossibleAnswer, impossibleAnswer);
         }
 
         double psi = 0.0;
@@ -243,7 +247,8 @@ public class spacecraftPathGen : MonoBehaviour
 
         if (!converged)
         {
-            throw new InvalidOperationException("Lambert algorithm failed to converge.");
+            showWarning.dispalyNotif(0, $"Error solving Lambert's problem:\nLambert algorithm failed to converge.");
+            return (impossibleAnswer, impossibleAnswer);
         }
 
         double f = 1.0 - y / r1;

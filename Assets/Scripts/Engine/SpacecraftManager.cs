@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
@@ -60,6 +61,7 @@ public class SpacecraftManager : MonoBehaviour
 
     private IEnumerator RunTestMissions(SpacecraftConfig config)
     {
+        yield return new WaitForSeconds(1);
         // --- Parity check: same 2-node Earth->Mars case your old SolveSingleLeg test ran ---
         showWarning.dispalyNotif(1, "Solving Earth->Mars (parity check)");
         var directResult = missionPlanner.PlanMission(
@@ -104,8 +106,10 @@ public class SpacecraftManager : MonoBehaviour
         // LaunchMissionCoroutine also waits for its own departure epoch internally, so once we've
         // already fast-forwarded here that inner wait just falls through immediately.
         speedViewer.overide = true;
-        showWarning.dispalyNotif(1, $"Simulating {flybyResult.TotalTOF / 86400:F1} days\nThis may take a while");
+        showWarning.dispalyNotif(1, $"Simulating {flybyResult.TotalTOF / 86400:F1} days\nCalculating Estimate");
         physicsManager.maxH = 99999999999999;
+
+        StartCoroutine(estTime(flybyResult.TotalTOF));
 
         double launchEpoch = flybyResult.Nodes[0].Epoch;
         while (physicsManager.t < launchEpoch)
@@ -120,6 +124,46 @@ public class SpacecraftManager : MonoBehaviour
 
         speedViewer.overide = false;
         showWarning.dispalyNotif(2, "Launched mission");
+    }
+
+    public IEnumerator estTime(double estTOF)
+    {
+        Debug.Log("called");
+        double speed = 0;
+        double time = 0;
+        int acc = 5;
+        for (int i = 0; i < acc; i++)
+        {
+            yield return null;
+            speed += physicsManager.h;
+            time += Time.deltaTime;
+        }
+        double estimatedSpeed = speed * (1.0 / time);
+        double estTime = estTOF / estimatedSpeed;
+
+        TimeSpan timeSpan = TimeSpan.FromSeconds(estimatedSpeed); //fancyy
+
+
+        string estTimeString = "ERROR";
+
+        //theres prolly a better way but theres 6 days left so idc   im in my toby fox arc
+        if (timeSpan.Days > 0)
+        {
+            estTimeString = $"{timeSpan.Days} Days {timeSpan.Hours} Hours {timeSpan.Minutes} Minutes {timeSpan.Seconds} Seconds";
+        }
+        else if (timeSpan.Hours > 0)
+        {
+            estTimeString = $"{timeSpan.Hours} Hours {timeSpan.Minutes} Minutes {timeSpan.Seconds} Seconds";
+        }
+        else if (timeSpan.Minutes > 0)
+        {
+            estTimeString = $"{timeSpan.Minutes} Minutes {timeSpan.Seconds} Seconds";
+        }
+        else if (timeSpan.Seconds > 0)
+        {
+            estTimeString = $"{timeSpan.Seconds} Seconds";
+        }
+        showWarning.dispalyNotif(1, $"Etimated {estTimeString} remaning");
     }
 }
 

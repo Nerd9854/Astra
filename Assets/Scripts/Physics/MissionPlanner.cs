@@ -25,6 +25,9 @@ public class MissionPlanner : MonoBehaviour
     public PhysicsManager physicsManager;
     public EngineManager engineManager;
     public SceneManager sceneManager;
+    public SpacecraftManager spacecraftManager;
+    public spacecraftPathGen spacecraftPathGen;
+    public showWarning showWarning;
 
     private const double G0 = 9.80665; // standard gravity (m/s^2) - a fixed constant, not any body's local gravity.
                                        // NOTE: this assumes SI units (Isp in seconds, positions/velocities in
@@ -56,23 +59,23 @@ public class MissionPlanner : MonoBehaviour
     /// bound applied to every leg for now - widen tofMaxDaysPerLeg for outer-planet
     /// routes, e.g. ~1500 days comfortably covers an Earth->Jupiter leg).
     /// </summary>
-    public MissionResult PlanMission(
-        string[] bodies,
-        NodeType[] types,
-        SpacecraftConfig config,
-        double tofMinDays = 30,
-        double tofMaxDaysPerLeg = 1500,
-        int pop = 40,
-        int gens = 200)
+    public MissionResult PlanMission(string[] bodies, NodeType[] types, SpacecraftConfig config, double tofMinDays = 30, double tofMaxDaysPerLeg = 1500, int pop = 40, int gens = 200)
     {
         if (bodies.Length != types.Length)
+        {
+            showWarning.dispalyNotif(0, "Bodies and types must be the same length");
             throw new ArgumentException("bodies and types must be the same length");
+        }
         if (bodies.Length < 2)
+        {
+            showWarning.dispalyNotif(0, "Need at least a Start and an End node");
             throw new ArgumentException("need at least a Start and an End node");
+        }
         if (types[0] != NodeType.Start || types[types.Length - 1] != NodeType.End)
+        {
+            showWarning.dispalyNotif(0, "First node must be Start, last node must be End");
             throw new ArgumentException("first node must be Start, last node must be End");
-
-        if (sunObj == null) Init();
+        }
 
         var nodes = new List<MissionNode>(bodies.Length);
         for (int i = 0; i < bodies.Length; i++)

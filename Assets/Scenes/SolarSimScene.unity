@@ -2592,6 +2592,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 929349354}
+        m_TargetAssemblyTypeName: UnityEngine.AudioSource, UnityEngine
+        m_MethodName: Play
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   m_IsOn: 0
 --- !u!222 &63014731
 CanvasRenderer:
@@ -5166,7 +5178,7 @@ RectTransform:
   - {fileID: 1551217473}
   - {fileID: 345003199}
   m_Father: {fileID: 1992636621}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
@@ -7646,7 +7658,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 969470022}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
@@ -11012,7 +11024,7 @@ RectTransform:
   - {fileID: 1439671830}
   - {fileID: 614448889}
   m_Father: {fileID: 1212011243}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
@@ -21668,7 +21680,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   orbitViewer: {fileID: 3801315115350121046}
-  showWarning: {fileID: 0}
+  showWarning: {fileID: 1333812507}
   engineManager: {fileID: 8682743521144494589}
   physicsManager: {fileID: 58676322}
   speedViewer: {fileID: 594301367}
@@ -21688,6 +21700,9 @@ MonoBehaviour:
   physicsManager: {fileID: 58676322}
   engineManager: {fileID: 8682743521144494589}
   sceneManager: {fileID: 3801315115350121044}
+  spacecraftManager: {fileID: 645059584}
+  spacecraftPathGen: {fileID: 645059586}
+  showWarning: {fileID: 1333812507}
 --- !u!1 &645800104
 GameObject:
   m_ObjectHideFlags: 0
@@ -23245,7 +23260,7 @@ GameObject:
   - component: {fileID: 688201794}
   - component: {fileID: 688201793}
   m_Layer: 5
-  m_Name: TimeScale (1)
+  m_Name: Planets
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -23267,12 +23282,12 @@ RectTransform:
   - {fileID: 1352208528}
   - {fileID: 1365326532}
   m_Father: {fileID: 1911206143}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 145.7, y: -9}
-  m_SizeDelta: {x: 117.3957, y: 30}
+  m_AnchoredPosition: {x: 164.3, y: -9}
+  m_SizeDelta: {x: 180, y: 30}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &688201793
 MonoBehaviour:
@@ -23605,7 +23620,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.31764707, g: 0.31764707, b: 0.31764707, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -25457,12 +25472,12 @@ RectTransform:
   - {fileID: 302432326}
   - {fileID: 2105084218}
   m_Father: {fileID: 426511690}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
-  m_AnchoredPosition: {x: 130.9, y: -9}
-  m_SizeDelta: {x: 117.3957, y: 30}
+  m_AnchoredPosition: {x: 150.1, y: -9}
+  m_SizeDelta: {x: 180, y: 30}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &745142590
 MonoBehaviour:
@@ -36415,6 +36430,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1082433996}
+  - component: {fileID: 1082433997}
   m_Layer: 5
   m_Name: Plan Mission
   m_TagString: Untagged
@@ -36443,6 +36459,25 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1082433997
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1082433995}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0a50e0341ae54247b350e70d4268ff3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ok: {fileID: 2070097178}
+  startingPlanet: {fileID: 688201793}
+  endingPlanet: {fileID: 745142590}
+  minDays: {fileID: 1838908494}
+  minDaysperLeg: {fileID: 1842273667}
+  engineManager: {fileID: 8682743521144494589}
+  allNames: []
 --- !u!1 &1083737585
 GameObject:
   m_ObjectHideFlags: 0
@@ -39484,7 +39519,7 @@ RectTransform:
   - {fileID: 659472832}
   - {fileID: 157652729}
   m_Father: {fileID: 1212011243}
-  m_RootOrder: 2
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
@@ -40766,7 +40801,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.31764707, g: 0.31764707, b: 0.31764707, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -43557,7 +43592,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.000004131195}
+  m_AnchoredPosition: {x: 0, y: -0.00004073649}
   m_SizeDelta: {x: 0, y: 274.4824}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1255553494
@@ -48619,11 +48654,14 @@ MonoBehaviour:
   spacecraftInfoDisplay: {fileID: 666898433}
   settingsPanel: {fileID: 736840939}
   selectDateObj: {fileID: 370946532}
-  selectDateMan: {fileID: 0}
+  selectDateMan: {fileID: 370946534}
   taskbarCanvas: {fileID: 1521539532}
   speedViewer: {fileID: 594301367}
+  missionPlannerUi: {fileID: 1082433997}
   tab1: {fileID: 1400692242}
   tab2: {fileID: 1808172228}
+  tab3: {fileID: 965704864}
+  tab4: {fileID: 656087669}
   frameNum: 0
   frameWait: 10
 --- !u!1 &1425433737
@@ -49015,7 +49053,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 579506847}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
@@ -54147,7 +54185,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 617017759}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
@@ -63106,7 +63144,7 @@ RectTransform:
   - {fileID: 1583004312}
   - {fileID: 86865942}
   m_Father: {fileID: 1212011243}
-  m_RootOrder: 1
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
@@ -63523,7 +63561,7 @@ RectTransform:
   m_Children:
   - {fileID: 460581855}
   m_Father: {fileID: 969470022}
-  m_RootOrder: 1
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
@@ -63699,7 +63737,7 @@ RectTransform:
   m_Children:
   - {fileID: 848461896}
   m_Father: {fileID: 579506847}
-  m_RootOrder: 1
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
@@ -65486,7 +65524,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.31764707, g: 0.31764707, b: 0.31764707, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -69223,10 +69261,10 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 1
         m_CallState: 2
-      - m_Target: {fileID: 8682743521144494589}
-        m_TargetAssemblyTypeName: EngineManager, Assembly-CSharp
-        m_MethodName: simulationStart
-        m_Mode: 1
+      - m_Target: {fileID: 1258220573}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -69235,10 +69273,10 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 1258220573}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
+      - m_Target: {fileID: 8682743521144494589}
+        m_TargetAssemblyTypeName: EngineManager, Assembly-CSharp
+        m_MethodName: simulationStart
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
