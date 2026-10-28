@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
@@ -83,6 +84,28 @@ public class EngineManager : MonoBehaviour
 
         BodyManager.bodyManagerInit();
         PhysicsManager.physicsInit(numOfObjects);
-        showWarning.dispalyNotif(2, $"Succcsessfully jumped dates to {dateData.dataDate.x.ToString("D2")}/{dateData.dataDate.y.ToString("D2")}/{dateData.dataDate.z}");
+        if (dateData.simulatingTime) StartCoroutine(jumpDate(dateData.timeToSim, dateData));
+        else showWarning.dispalyNotif(2, $"Succcsessfully jumped dates to {dateData.dataDate.x.ToString("D2")}/{dateData.dataDate.y.ToString("D2")}/{dateData.dataDate.z}");
+    }
+
+    private IEnumerator jumpDate(double timeToSim, SelectDateMan.dateObj dateData)
+    {
+        UiManager.speedViewer.overide = true;
+        SpacecraftManager.disableOrEnableText(false);
+
+        double endTime = PhysicsManager.t + timeToSim;
+        StartCoroutine(SpacecraftManager.simulatingTimeUI.showProgress(endTime, 0, PhysicsManager.t, false));
+        while (PhysicsManager.t < endTime)
+        {
+            double timeLeft = endTime - PhysicsManager.t;
+            if (timeLeft < PhysicsManager.maxH)
+                PhysicsManager.maxH = timeLeft;
+            yield return null;
+        }
+
+        showWarning.dispalyNotif(2, $"Succcsessfully jumped dates to {dateData.endDate}");
+
+        UiManager.speedViewer.overide = false;
+        SpacecraftManager.disableOrEnableText(true);
     }
 }

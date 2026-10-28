@@ -7,6 +7,7 @@ using UnityEngine.UI;
 
 public class showWarning : MonoBehaviour
 {
+    public simulatingTimeUI simulatingTimeUI;
     public RectTransform warning;
     public TMPro.TextMeshProUGUI messageG;
     public TMPro.TextMeshProUGUI top;
@@ -37,13 +38,17 @@ public class showWarning : MonoBehaviour
         else
         {
             multiple = true;
-            messages.Enqueue((type, message));
+            if (!messages.Contains((type, message)))
+            {
+                messages.Enqueue((type, message));
+            }
         }
     }
 
     private IEnumerator slideIn()
     {
         sliding = true;
+        simulatingTimeUI.updatePos(true);
         StartCoroutine(slide(true));
 
         yield return new WaitForSeconds(showTime + slideSpeed);
@@ -51,6 +56,8 @@ public class showWarning : MonoBehaviour
         StartCoroutine(slide(false));
         yield return new WaitForSeconds(slideSpeed);
         sliding = false;
+
+        if (messages.Count == 0) simulatingTimeUI.updatePos(false);
     }
 
     private IEnumerator slide(bool slideIn)

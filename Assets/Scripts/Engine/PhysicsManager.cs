@@ -8,6 +8,7 @@ using UnityEngine;
 [BurstCompile]
 public class PhysicsManager : MonoBehaviour
 {
+
     //physics = fast
     //bugs = off
 

@@ -1,23 +1,8 @@
-using System;
+/*using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
-using static TreeEditor.TreeEditorHelper;
-
-// ---------------------------------------------------------------------
-// Generalizes spacecraftPathGen's single-leg SolveSingleLeg into an N-node
-// route: pass a list of bodies + node types, get back the DE-optimized
-// departure date, per-leg TOFs, total dV, and a feasibility verdict.
-//
-//   var result = missionPlanner.PlanMission(
-//       new[] { "EARTH", "VENUS", "JUPITER" },
-//       new[] { NodeType.Start, NodeType.Flyby, NodeType.End },
-//       config);
-//
-// Wire the three fields below in the inspector (same objects your
-// spacecraftPathGen/SpacecraftManager already reference).
-// ---------------------------------------------------------------------
 
 public class MissionPlanner : MonoBehaviour
 {
@@ -29,17 +14,11 @@ public class MissionPlanner : MonoBehaviour
     public spacecraftPathGen spacecraftPathGen;
     public showWarning showWarning;
 
-    private const double G0 = 9.80665; // standard gravity (m/s^2) - a fixed constant, not any body's local gravity.
-                                       // NOTE: this assumes SI units (Isp in seconds, positions/velocities in
-                                       // meters & m/s). Your existing Lambert test comment ("expect roughly 2-4,
-                                       // in whatever unit your mu/positions use") suggests your sim might run on
-                                       // a non-SI unit system - if so, either convert Isp/G0 to match, or feed
-                                       // DryMass/FuelMass/PayloadMass in units consistent with that system.
+    private const double G0 = 9.80665;
 
     private PhysicsManager.physicsObject sunObj;
-    private Dictionary<string, OrbitViewer.KeplerianElements> kepCache;
-    private double[] _epochScratch; // reused across DE evaluations within one PlanMission call - avoids
-                                    // reallocating a small array on every one of the ~thousands of cost evals
+    private Dictionary<string, OrbitViewer.KeplerianElements> kepvalues;
+    private double[] _epochScratch;
 
     public void Init()
     {
@@ -64,24 +43,24 @@ public class MissionPlanner : MonoBehaviour
         if (bodies.Length != types.Length)
         {
             showWarning.dispalyNotif(0, "Bodies and types must be the same length");
-            throw new ArgumentException("bodies and types must be the same length");
+            return null;
         }
         if (bodies.Length < 2)
         {
             showWarning.dispalyNotif(0, "Need at least a Start and an End node");
-            throw new ArgumentException("need at least a Start and an End node");
+            return null;
         }
         if (types[0] != NodeType.Start || types[types.Length - 1] != NodeType.End)
         {
             showWarning.dispalyNotif(0, "First node must be Start, last node must be End");
-            throw new ArgumentException("first node must be Start, last node must be End");
+            return null;
         }
 
         var nodes = new List<MissionNode>(bodies.Length);
         for (int i = 0; i < bodies.Length; i++)
             nodes.Add(new MissionNode(bodies[i], types[i]));
 
-        BuildKepCache(bodies);
+        storeKepValues(bodies);
         _epochScratch = new double[nodes.Count];
 
         int numLegs = nodes.Count - 1;
@@ -138,26 +117,22 @@ public class MissionPlanner : MonoBehaviour
     // Ephemeris helpers
     // ==================================================================
 
-    private void BuildKepCache(string[] bodies)
+    private void storeKepValues(string[] bodies)
     {
-        kepCache = new Dictionary<string, OrbitViewer.KeplerianElements>();
+        kepvalues = new Dictionary<string, OrbitViewer.KeplerianElements>();
         foreach (string b in bodies)
         {
-            if (kepCache.ContainsKey(b)) continue;
+            if (kepvalues.ContainsKey(b)) continue;
             var obj = physicsManager.fullObjData[engineManager.bodylookup[b]];
-            kepCache[b] = orbitViewer.calcKep(obj.pos, obj.vel, obj.mass, sunObj.mass);
-            // NOTE: you mentioned elements for all ~100 bodies are already precomputed relative to the
-            // Sun - if OrbitViewer exposes a direct lookup for that, swap it in here instead of
-            // recalculating from the live physicsObject state (matches what spacecraftPathGen.getVel
-            // already does today, so this is at parity, not a regression - just a possible later win).
+            kepvalues[b] = orbitViewer.calcKep(obj.pos, obj.vel, obj.mass, sunObj.mass);
         }
     }
 
     private double3 GetPos(string bodyName, double epoch) =>
-        orbitViewer.getPositionAtTime(kepCache[bodyName], epoch) - sunObj.pos;
+        orbitViewer.getPositionAtTime(kepvalues[bodyName], epoch) - sunObj.pos;
 
     private double3 GetVel(string bodyName, double epoch) =>
-        orbitViewer.getVelocityAtTime(kepCache[bodyName], epoch);
+        orbitViewer.getVelocityAtTime(kepvalues[bodyName], epoch);
 
     private double GetBodyRadius(string bodyName)
     {
@@ -454,6 +429,511 @@ public class MissionPlanner : MonoBehaviour
                 yield return null;
 
             double3 targetVel = GetVel(nodes[nodes.Count - 1].BodyName, arrivalEpoch);
+            physicsManager.commandBurn(craft, targetVel, 60.0);
+        }
+    }
+}*/
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using Unity.Mathematics;
+using UnityEngine;
+
+public enum NodeType
+{
+    Start,
+    Flyby,
+    End
+}
+
+public enum ArrivalMode
+{
+    Flyby,          // no capture burn at the final node, just pass by
+    OrbitInsertion  // match the target body's velocity at the final node
+}
+
+public enum EnginePreset
+{
+    Chemical,
+    Ion,
+    Custom
+}
+
+[Serializable]
+public class SpacecraftConfig
+{
+    // masses (kg)
+    public double DryMass;
+    public double FuelMass;
+    public double PayloadMass;
+
+    // derived so it can never drift out of sync with the three fields above
+    public double WetMass => DryMass + FuelMass + PayloadMass;
+
+    // engine
+    public double Isp;    // seconds
+    public double Thrust; // Newtons, not used by the solver (impulsive burns), kept for UI / burn duration checks
+    public EnginePreset EnginePreset = EnginePreset.Chemical; // UI only
+
+    // optimizer
+    public double ObjectiveWeight = 0.5; // 0 = pure fuel optimal, 1 = pure time optimal
+    public double SearchWindowStart;     // seconds, absolute sim time, bounds t0
+    public double SearchWindowEnd;
+
+    // mission shape
+    public ArrivalMode ArrivalMode = ArrivalMode.OrbitInsertion;
+    public double MaxMissionDuration = 0; // seconds, 0 or negative = unconstrained
+
+    // flyby safety, altitude above the surface in meters, keyed by the same names as EngineManager.bodylookup
+    public Dictionary<string, double> MinFlybyPeriapsisAltitude = new();
+    public double DefaultMinFlybyPeriapsisAltitude = 200_000;
+
+    public double GetMinFlybyAltitude(string bodyName)
+    {
+        return MinFlybyPeriapsisAltitude.TryGetValue(bodyName, out double alt)
+            ? alt
+            : DefaultMinFlybyPeriapsisAltitude;
+    }
+}
+
+public class MissionNode
+{
+    public string BodyName;
+    public NodeType Type;
+    public double Epoch; // seconds, filled in once solved
+
+    public MissionNode(string bodyName, NodeType type)
+    {
+        BodyName = bodyName;
+        Type = type;
+    }
+}
+
+public class MissionLeg
+{
+    public MissionNode NodeA;
+    public MissionNode NodeB;
+    public double TOF => NodeB.Epoch - NodeA.Epoch;
+    public double3 V_departure; // heliocentric velocity at NodeA
+    public double3 V_arrival;   // heliocentric velocity at NodeB
+}
+
+public class MissionResult
+{
+    public bool Feasible;
+    public double TotalDeltaV;
+    public double TotalTOF;   // seconds
+    public double MassMargin; // kg above (DryMass + PayloadMass), or the shortfall if infeasible
+    public double BestCost;   // raw DE cost, debugging only
+    public List<MissionNode> Nodes = new();
+    public List<MissionLeg> Legs = new();
+}
+
+public class MissionPlanner : MonoBehaviour
+{
+    public OrbitViewer orbitViewer;
+    public PhysicsManager physicsManager;
+    public EngineManager engineManager;
+    public SceneManager sceneManager;
+    public SpacecraftManager spacecraftManager;
+    public spacecraftPathGen spacecraftPathGen;
+    public showWarning showWarning;
+
+    private const double G0 = 9.80665;
+
+    private PhysicsManager.physicsObject sunObj;
+    private Dictionary<string, OrbitViewer.KeplerianElements> kepvalues;
+    private double[] epochScratch;
+
+    public void Init()
+    {
+        sunObj = physicsManager.fullObjData[engineManager.bodylookup["SUN"]];
+    }
+
+    // bodies and types are parallel arrays, first must be Start, last must be End, anything between is a Flyby
+    // e.g. bodies = ["EARTH", "VENUS", "JUPITER"], types = [Start, Flyby, End]
+    // tofMaxDaysPerLeg applies to every leg, ~1500 covers an Earth -> Jupiter leg
+    public MissionResult PlanMission(string[] bodies, NodeType[] types, SpacecraftConfig config, double tofMinDays = 30, double tofMaxDaysPerLeg = 1500, int pop = 40, int gens = 200)
+    {
+        if (bodies.Length != types.Length)
+        {
+            showWarning.dispalyNotif(0, "Bodies and types must be the same length");
+            return null;
+        }
+        if (bodies.Length < 2)
+        {
+            showWarning.dispalyNotif(0, "Need at least a Start and an End node");
+            return null;
+        }
+        if (types[0] != NodeType.Start || types[types.Length - 1] != NodeType.End)
+        {
+            showWarning.dispalyNotif(0, "First node must be Start, last node must be End");
+            return null;
+        }
+
+        List<MissionNode> nodes = new(bodies.Length);
+        for (int i = 0; i < bodies.Length; i++)
+        {
+            nodes.Add(new MissionNode(bodies[i], types[i]));
+        }
+
+        storeKepValues(bodies);
+        epochScratch = new double[nodes.Count];
+
+        int numLegs = nodes.Count - 1;
+        int dims = 1 + numLegs; // [t0, TOF_1, ..., TOF_n]
+
+        double[] lower = new double[dims];
+        double[] upper = new double[dims];
+        lower[0] = config.SearchWindowStart;
+        upper[0] = config.SearchWindowEnd;
+
+        double tofMinSec = tofMinDays * 86400.0;
+        double tofMaxSec = tofMaxDaysPerLeg * 86400.0;
+        for (int i = 1; i < dims; i++)
+        {
+            lower[i] = tofMinSec;
+            upper[i] = tofMaxSec;
+        }
+
+        double expectedMaxDeltaV = estimateExpectedMaxDeltaV(config);
+
+        Func<double[], double> costFn = (x) => costFunction(x, nodes, config, expectedMaxDeltaV, out _, out _);
+        var (bestX, _) = differentialEvolution(lower, upper, costFn, pop, gens);
+
+        // one final evaluation at the winning x to get the legs and totalDeltaV back
+        double finalCost = costFunction(bestX, nodes, config, expectedMaxDeltaV, out double totalDeltaV, out var legs);
+
+        // write the winning epochs onto the nodes
+        nodes[0].Epoch = bestX[0];
+        for (int i = 1; i < nodes.Count; i++)
+        {
+            nodes[i].Epoch = nodes[i - 1].Epoch + bestX[i];
+        }
+
+        // epochScratch still holds bestX's epochs from the costFunction call above
+        double[] finalNodeCosts = nodeCostsArray(nodes, epochScratch, legs, config);
+        bool feasible = feasibilityFromCosts(finalNodeCosts, config, out double margin);
+
+        double totalTOF = 0;
+        for (int i = 1; i < bestX.Length; i++) totalTOF += bestX[i];
+        bool durationOk = config.MaxMissionDuration <= 0 || totalTOF <= config.MaxMissionDuration;
+        bool periapsisOk = periapsisPenalty(nodes, epochScratch, legs, config) <= 0;
+
+        return new MissionResult
+        {
+            Feasible = feasible && durationOk && periapsisOk,
+            TotalDeltaV = totalDeltaV,
+            TotalTOF = totalTOF,
+            MassMargin = margin,
+            BestCost = finalCost,
+            Nodes = nodes,
+            Legs = legs
+        };
+    }
+
+    private void storeKepValues(string[] bodies)
+    {
+        kepvalues = new();
+        foreach (string b in bodies)
+        {
+            if (kepvalues.ContainsKey(b)) continue;
+
+            var obj = physicsManager.fullObjData[engineManager.bodylookup[b]];
+            kepvalues[b] = orbitViewer.calcKep(obj.pos, obj.vel, obj.mass, sunObj.mass);
+        }
+    }
+
+    private double3 getPos(string bodyName, double epoch)
+    {
+        return orbitViewer.getPositionAtTime(kepvalues[bodyName], epoch) - sunObj.pos;
+    }
+
+    private double3 getVel(string bodyName, double epoch)
+    {
+        return orbitViewer.getVelocityAtTime(kepvalues[bodyName], epoch);
+    }
+
+    private double getBodyRadius(string bodyName)
+    {
+        return sceneManager.allBodys[engineManager.bodylookup[bodyName]].GetComponent<Body>().radius;
+    }
+
+    // called by the DE thousands of times per solve
+    private double costFunction(
+        double[] x,
+        List<MissionNode> nodes,
+        SpacecraftConfig config,
+        double expectedMaxDeltaV,
+        out double totalDeltaV,
+        out List<MissionLeg> legs)
+    {
+        // does not write to nodes[i].Epoch, that only happens once after the DE finishes,
+        // so the population loop can be made parallel later without candidates stomping on each other
+        if (epochScratch == null || epochScratch.Length != nodes.Count)
+        {
+            epochScratch = new double[nodes.Count];
+        }
+        double[] epochs = epochScratch;
+
+        epochs[0] = x[0];
+        double totalTOF = 0;
+        for (int i = 1; i < nodes.Count; i++)
+        {
+            totalTOF += x[i];
+            epochs[i] = epochs[i - 1] + x[i];
+        }
+
+        legs = new(nodes.Count - 1);
+        for (int i = 1; i < nodes.Count; i++)
+        {
+            MissionLeg leg = new() { NodeA = nodes[i - 1], NodeB = nodes[i] };
+
+            double3 r1 = getPos(nodes[i - 1].BodyName, epochs[i - 1]);
+            double3 r2 = getPos(nodes[i].BodyName, epochs[i]);
+
+            try
+            {
+                var (v1, v2) = spacecraftPathGen.SolveLambert(r1, r2, x[i], sunObj.mass, "prograde");
+                leg.V_departure = v1;
+                leg.V_arrival = v2;
+            }
+            catch
+            {
+                // degenerate Lambert case (e.g. ~180 degree transfer), heavy penalty so the DE steers away
+                legs.Add(leg);
+                totalDeltaV = double.NaN;
+                return 1e12;
+            }
+
+            legs.Add(leg);
+        }
+
+        double[] nodeCosts = nodeCostsArray(nodes, epochs, legs, config);
+        totalDeltaV = 0;
+        foreach (double c in nodeCosts) totalDeltaV += c;
+
+        double penalty = 0;
+
+        bool feasible = feasibilityFromCosts(nodeCosts, config, out double margin);
+        if (!feasible)
+        {
+            penalty += 1e6 * (-margin);
+        }
+
+        if (config.MaxMissionDuration > 0 && totalTOF > config.MaxMissionDuration)
+        {
+            penalty += 1e6 * (totalTOF - config.MaxMissionDuration);
+        }
+
+        penalty += periapsisPenalty(nodes, epochs, legs, config);
+
+        // normalize before blending, dV and TOF are different units
+        double normalizedDeltaV = totalDeltaV / math.max(expectedMaxDeltaV, 1e-9);
+        double normalizedTOF = totalTOF / math.max(config.SearchWindowEnd - config.SearchWindowStart, 1e-9);
+        double blended = config.ObjectiveWeight * normalizedTOF + (1 - config.ObjectiveWeight) * normalizedDeltaV;
+
+        return blended + penalty;
+    }
+
+    // cost at every node = |departure velocity - arrival velocity| (heliocentric)
+    // Start: arrival velocity is the departure body's own velocity
+    // End: departure velocity is the arrival velocity (Flyby) or the target body's velocity (OrbitInsertion)
+    // NOTE: flybys bill the full velocity change even though a real gravity assist gives some of the turn for free
+    private double[] nodeCostsArray(List<MissionNode> nodes, double[] epochs, List<MissionLeg> legs, SpacecraftConfig config)
+    {
+        double[] costs = new double[nodes.Count];
+        for (int i = 0; i < nodes.Count; i++)
+        {
+            double3 vArrive = i == 0
+                ? getVel(nodes[0].BodyName, epochs[0])
+                : legs[i - 1].V_arrival;
+
+            double3 vDepart;
+            if (i == nodes.Count - 1)
+            {
+                vDepart = config.ArrivalMode == ArrivalMode.Flyby
+                    ? vArrive
+                    : getVel(nodes[i].BodyName, epochs[i]);
+            }
+            else
+            {
+                vDepart = legs[i].V_departure;
+            }
+
+            costs[i] = math.length(vDepart - vArrive);
+        }
+        return costs;
+    }
+
+    private bool feasibilityFromCosts(double[] nodeCosts, SpacecraftConfig config, out double margin)
+    {
+        double ve = config.Isp * G0;
+        double mass = config.WetMass;
+        double minMass = config.DryMass + config.PayloadMass;
+
+        foreach (double cost in nodeCosts)
+        {
+            double propUsed = mass * (1 - Math.Exp(-cost / math.max(ve, 1e-9)));
+            mass -= propUsed;
+            if (mass < minMass)
+            {
+                margin = minMass - mass; // shortfall
+                return false;
+            }
+        }
+
+        margin = mass - minMass;
+        return true;
+    }
+
+    private double periapsisPenalty(List<MissionNode> nodes, double[] epochs, List<MissionLeg> legs, SpacecraftConfig config)
+    {
+        double penalty = 0;
+        for (int i = 1; i < nodes.Count - 1; i++) // only interior nodes have an incoming and outgoing leg
+        {
+            if (nodes[i].Type != NodeType.Flyby) continue;
+
+            double3 vArrive = legs[i - 1].V_arrival;
+            double3 vDepart = legs[i].V_departure;
+            double3 vBody = getVel(nodes[i].BodyName, epochs[i]);
+
+            double3 vInfIn = vArrive - vBody;
+            double3 vInfOut = vDepart - vBody;
+            double vInfInMag = math.length(vInfIn);
+            double vInfOutMag = math.length(vInfOut);
+            double vInf = 0.5 * (vInfInMag + vInfOutMag); // equal for a purely unpowered flyby
+
+            if (vInf < 1e-9) continue;
+
+            double dotP = math.clamp(math.dot(vInfIn, vInfOut) / (vInfInMag * vInfOutMag), -1.0, 1.0);
+            double turnAngle = Math.Acos(dotP);
+            double sinHalf = Math.Sin(turnAngle / 2.0);
+            if (sinHalf < 1e-6) continue; // basically a straight line pass
+
+            double muBody = physicsManager.fullObjData[engineManager.bodylookup[nodes[i].BodyName]].mass; // GM, not kg
+            double impliedPeriapsis = (muBody / (vInf * vInf)) * (1.0 / sinHalf - 1.0);
+
+            double minSafe = config.GetMinFlybyAltitude(nodes[i].BodyName) + getBodyRadius(nodes[i].BodyName);
+            if (impliedPeriapsis < minSafe)
+            {
+                penalty += 1e6 * (minSafe - impliedPeriapsis);
+            }
+        }
+        return penalty;
+    }
+
+    // only used to normalize the cost blend, derived from the ship's full tank dV so the units always match
+    private double estimateExpectedMaxDeltaV(SpacecraftConfig config)
+    {
+        double ve = config.Isp * G0;
+        double minMass = math.max(config.DryMass + config.PayloadMass, 1e-6);
+        return ve * Math.Log(config.WetMass / minMass);
+    }
+
+    private (double[] bestX, double bestCost) differentialEvolution(
+        double[] lower, double[] upper, Func<double[], double> costFn,
+        int popSize, int generations, double F = 0.8, double CR = 0.9)
+    {
+        System.Random rng = new();
+        int dims = lower.Length;
+
+        double[][] population = new double[popSize][];
+        double[] costs = new double[popSize];
+        for (int i = 0; i < popSize; i++)
+        {
+            population[i] = new double[dims];
+            for (int d = 0; d < dims; d++)
+            {
+                population[i][d] = lower[d] + rng.NextDouble() * (upper[d] - lower[d]);
+            }
+            costs[i] = costFn(population[i]);
+        }
+
+        double[] trial = new double[dims]; // reused, not allocated per candidate
+
+        for (int gen = 0; gen < generations; gen++)
+        {
+            double currentF = F;
+            if (gen > 0.8 * generations)
+            {
+                currentF = lerp(F, 0.3, (gen - 0.8 * generations) / (0.2 * generations));
+            }
+
+            for (int i = 0; i < popSize; i++)
+            {
+                int a, b, c;
+                do { a = rng.Next(popSize); } while (a == i);
+                do { b = rng.Next(popSize); } while (b == i || b == a);
+                do { c = rng.Next(popSize); } while (c == i || c == a || c == b);
+
+                int forcedDim = rng.Next(dims);
+                for (int d = 0; d < dims; d++)
+                {
+                    trial[d] = (rng.NextDouble() < CR || d == forcedDim)
+                        ? population[a][d] + currentF * (population[b][d] - population[c][d])
+                        : population[i][d];
+                    trial[d] = math.clamp(trial[d], lower[d], upper[d]);
+                }
+
+                double trialCost = costFn(trial);
+                if (trialCost < costs[i])
+                {
+                    Array.Copy(trial, population[i], dims);
+                    costs[i] = trialCost;
+                }
+            }
+        }
+
+        int best = 0;
+        for (int i = 1; i < popSize; i++)
+        {
+            if (costs[i] < costs[best]) best = i;
+        }
+        return (population[best], costs[best]);
+
+        // if this gets too slow the loop over popSize can be wrapped in Parallel.For,
+        // costFunction would then need its own epoch/trial buffers per thread instead of epochScratch
+    }
+
+    private static double lerp(double a, double b, double t)
+    {
+        return a + (b - a) * math.clamp(t, 0.0, 1.0);
+    }
+
+    // spawns the craft at the Start node with the winning departure burn, then if ArrivalMode is
+    // OrbitInsertion waits for the final epoch and commands the capture burn
+    // flyby nodes get no burn, the IAS15 integrator handles the gravity assist as the craft passes each body
+    public IEnumerator LaunchMissionCoroutine(MissionResult result, SpacecraftConfig config)
+    {
+        if (!result.Feasible)
+        {
+            Debug.LogWarning("MissionPlanner: launching a mission PlanMission flagged infeasible.");
+        }
+
+        var nodes = result.Nodes;
+        var legs = result.Legs;
+
+        double3 spawnPos = getPos(nodes[0].BodyName, nodes[0].Epoch) + sunObj.pos;
+        double3 spawnVel = getVel(nodes[0].BodyName, nodes[0].Epoch);
+
+        while (physicsManager.t < nodes[0].Epoch)
+        {
+            yield return null;
+        }
+
+        var craft = physicsManager.addSpacecraft(spawnPos, spawnVel, 0.0);
+        physicsManager.commandBurn(craft, legs[0].V_departure, 60.0);
+
+        if (config.ArrivalMode == ArrivalMode.OrbitInsertion)
+        {
+            double arrivalEpoch = nodes[nodes.Count - 1].Epoch;
+            while (physicsManager.t < arrivalEpoch)
+            {
+                yield return null;
+            }
+
+            double3 targetVel = getVel(nodes[nodes.Count - 1].BodyName, arrivalEpoch);
             physicsManager.commandBurn(craft, targetVel, 60.0);
         }
     }

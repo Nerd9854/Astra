@@ -1,8 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using Unity.Mathematics;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class SpacecraftManager : MonoBehaviour
 {
@@ -18,7 +21,13 @@ public class SpacecraftManager : MonoBehaviour
     public GameObject light;
     public GameObject spacecraft;
     public showWarning showWarning;
+    public simulatingTimeUI simulatingTimeUI;
     public bool spacecraftActive = false;
+
+    public Button selectDate;
+    public TMPro.TextMeshProUGUI selectDateText;
+    public GameObject dateObj;
+    public GameObject settings;
 
     public void updateCraft()
     {
@@ -59,11 +68,25 @@ public class SpacecraftManager : MonoBehaviour
         StartCoroutine(RunTestMissions(config));
     }
 
+    public void disableOrEnableText(bool enable) //holy jank
+    {
+        selectDate.interactable = enable;
+        selectDateText.color = enable? new Color32(255, 255, 255, 255) : new Color32(128, 128, 128, 255);
+
+        if (!enable)
+        {
+            dateObj.SetActive(false);
+            settings.SetActive(false);
+        }
+    }
+
     private IEnumerator RunTestMissions(SpacecraftConfig config)
     {
-        yield return new WaitForSeconds(1);
+        yield break;
+        yield return new WaitForSeconds(1);//LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS 
+        
         // --- Parity check: same 2-node Earth->Mars case your old SolveSingleLeg test ran ---
-        showWarning.dispalyNotif(1, "Solving Earth->Mars (parity check)");
+        /*showWarning.dispalyNotif(1, "Solving Earth->Mars (parity check)");
         var directResult = missionPlanner.PlanMission(
             new[] { "EARTH", "MARS" },
             new[] { NodeType.Start, NodeType.End },
@@ -78,7 +101,7 @@ public class SpacecraftManager : MonoBehaviour
         // different, that's a sign something in the port (units, node-cost wiring) needs a second look
         // before trusting the multi-leg case below.
 
-        yield return null;
+        yield return null;*/
 
         // --- Multi-leg check: Earth -> Venus flyby -> Mars, exercises the chain + periapsis code ---
         showWarning.dispalyNotif(1, "Solving Earth->Venus->Mars (flyby)");
@@ -92,26 +115,27 @@ public class SpacecraftManager : MonoBehaviour
         var legTofs = new List<string>();
         foreach (var leg in flybyResult.Legs) legTofs.Add((leg.TOF / 86400).ToString("F1"));
 
-        Debug.Log($"[Test] Earth->Venus->Mars: t0={flybyResult.Nodes[0].Epoch / 86400:F1}d, " +
+        /*Debug.Log($"[Test] Earth->Venus->Mars: t0={flybyResult.Nodes[0].Epoch / 86400:F1}d, " +
                   $"leg TOFs={string.Join("/", legTofs)}d, dV={flybyResult.TotalDeltaV:F4}, " +
-                  $"feasible={flybyResult.Feasible}, margin={flybyResult.MassMargin:F1}kg");
+                  $"feasible={flybyResult.Feasible}, margin={flybyResult.MassMargin:F1}kg");*/
 
         if (!flybyResult.Feasible)
         {
-            showWarning.dispalyNotif(2, "Flyby route infeasible with current ship - check the log");
+            showWarning.dispalyNotif(2, "Mission infeasible");
             yield break;
         }
 
-        // Fast-forward to the departure epoch (same maxH trick your original waitForStart used).
-        // LaunchMissionCoroutine also waits for its own departure epoch internally, so once we've
-        // already fast-forwarded here that inner wait just falls through immediately.
         speedViewer.overide = true;
-        showWarning.dispalyNotif(1, $"Simulating {flybyResult.TotalTOF / 86400:F1} days\nCalculating Estimate");
+        double launchEpoch = flybyResult.Nodes[0].Epoch;
+
+        //showWarning.dispalyNotif(1, $"Simulating {(launchEpoch - physicsManager.t) / 86400:F1} days\nCalculating Estimate");
+        //StartCoroutine(estTime(launchEpoch - physicsManager.t));
+
         physicsManager.maxH = 99999999999999;
 
-        StartCoroutine(estTime(flybyResult.TotalTOF));
+        disableOrEnableText(false);
+        StartCoroutine(simulatingTimeUI.showProgress(launchEpoch, flybyResult.TotalTOF, physicsManager.t, true));
 
-        double launchEpoch = flybyResult.Nodes[0].Epoch;
         while (physicsManager.t < launchEpoch)
         {
             double timeLeft = launchEpoch - physicsManager.t;
@@ -120,15 +144,15 @@ public class SpacecraftManager : MonoBehaviour
             yield return null;
         }
 
+        speedViewer.overide = false;
         yield return StartCoroutine(missionPlanner.LaunchMissionCoroutine(flybyResult, config));
 
-        speedViewer.overide = false;
+        disableOrEnableText(false);
         showWarning.dispalyNotif(2, "Launched mission");
     }
 
     public IEnumerator estTime(double estTOF)
     {
-        Debug.Log("called");
         double speed = 0;
         double time = 0;
         int acc = 5;
@@ -141,29 +165,32 @@ public class SpacecraftManager : MonoBehaviour
         double estimatedSpeed = speed * (1.0 / time);
         double estTime = estTOF / estimatedSpeed;
 
-        TimeSpan timeSpan = TimeSpan.FromSeconds(estimatedSpeed); //fancyy
+        showWarning.dispalyNotif(1, $"Etimated {convertTime(estTime)} remaning");
+    }
 
-
-        string estTimeString = "ERROR";
+    public string convertTime(double estTime)
+    {
+        TimeSpan timeSpan = TimeSpan.FromSeconds(estTime); //fancyy
 
         //theres prolly a better way but theres 6 days left so idc   im in my toby fox arc
         if (timeSpan.Days > 0)
         {
-            estTimeString = $"{timeSpan.Days} Days {timeSpan.Hours} Hours {timeSpan.Minutes} Minutes {timeSpan.Seconds} Seconds";
+            return $"{timeSpan.Days} Days {timeSpan.Hours} Hours {timeSpan.Minutes} Minutes";// {timeSpan.Seconds} Seconds";
         }
         else if (timeSpan.Hours > 0)
         {
-            estTimeString = $"{timeSpan.Hours} Hours {timeSpan.Minutes} Minutes {timeSpan.Seconds} Seconds";
+            return $"{timeSpan.Hours} Hours {timeSpan.Minutes} Minutes";//  {timeSpan.Seconds} Seconds";
         }
         else if (timeSpan.Minutes > 0)
         {
-            estTimeString = $"{timeSpan.Minutes} Minutes {timeSpan.Seconds} Seconds";
+            return $"{timeSpan.Minutes} Minutes {timeSpan.Seconds} Seconds";
         }
         else if (timeSpan.Seconds > 0)
         {
-            estTimeString = $"{timeSpan.Seconds} Seconds";
+            return $"{timeSpan.Seconds} Seconds";
         }
-        showWarning.dispalyNotif(1, $"Etimated {estTimeString} remaning");
+
+        return "0 Seconds";
     }
 }
 

@@ -18,6 +18,7 @@ public class missionPlannerUi : MonoBehaviour
 
     public void missionPlannerUiStart()
     {
+        startingPlanet.onValueChanged.AddListener(startPlanChanged);
         allNames.Add("Mercury");
         allNames.Add("Venus");
         allNames.Add("Earth");
@@ -39,6 +40,20 @@ public class missionPlannerUi : MonoBehaviour
         endingPlanet.AddOptions(allNames);
 
         startingPlanet.RefreshShownValue();
+        endingPlanet.RefreshShownValue();
+    }
+
+    private void startPlanChanged(int index)
+    {
+        string value = startingPlanet.options[index].text;
+
+        endingPlanet.ClearOptions();
+
+        List<string> newAvNames = new List<string>(allNames);
+        newAvNames.Remove(value);
+
+        endingPlanet.AddOptions(newAvNames);
+
         endingPlanet.RefreshShownValue();
     }
 

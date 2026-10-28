@@ -23,6 +23,7 @@ public class spacecraftPathGen : MonoBehaviour
         sunObj = physicsManager.fullObjData[engineManager.bodylookup["SUN"]];
     }
 
+    /*
     public double getVel(string startBody, string endBody, double t0, double tof)
     {
         PhysicsManager.physicsObject endBodyObj = physicsManager.fullObjData[engineManager.bodylookup[endBody]];
@@ -49,7 +50,7 @@ public class spacecraftPathGen : MonoBehaviour
         return 0;
     }
 
-    /*
+    
     public (double bestT0, double bestTOF, double bestCost) SolveSingleLeg(string startBody, string endBody, double t0Min, double t0Max, double tofMin, double tofMax, int pop = 30, int gens = 100)
     {
         var rng = new System.Random();
@@ -247,7 +248,7 @@ public class spacecraftPathGen : MonoBehaviour
 
         if (!converged)
         {
-            showWarning.dispalyNotif(0, $"Error solving Lambert's problem:\nLambert algorithm failed to converge.");
+            //showWarning.dispalyNotif(0, $"Error solving Lambert's problem:\nLambert algorithm failed to converge.");
             return (impossibleAnswer, impossibleAnswer);
         }
 

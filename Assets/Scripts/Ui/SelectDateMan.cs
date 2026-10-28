@@ -270,6 +270,7 @@ public class SelectDateMan : MonoBehaviour
         public Vector3Int dataDate;
         public bool simulatingTime;
         public int timeToSim;
+        public string endDate;
     }
 
     public dateObj getData()
@@ -289,6 +290,7 @@ public class SelectDateMan : MonoBehaviour
         data.dataDate = new Vector3Int(day, month, year);
         data.simulatingTime = exactDate.isOn && currDay != -1;
         data.timeToSim = (diffrence.Days * 86400) + (diffrence.Hours * 3600) + (diffrence.Minutes * 60);
+        data.endDate = endDate.text;
 
         return data;
     }
