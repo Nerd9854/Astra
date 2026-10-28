@@ -17,7 +17,6 @@ public class spacecraftPathGen : MonoBehaviour
     public speedViewer speedViewer;
     PhysicsManager.physicsObject sunObj;
 
-
     public void genStart()
     {
         sunObj = physicsManager.fullObjData[engineManager.bodylookup["SUN"]];

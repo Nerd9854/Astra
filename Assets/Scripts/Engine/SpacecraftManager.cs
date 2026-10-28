@@ -9,6 +9,7 @@ using UnityEngine.UI;
 
 public class SpacecraftManager : MonoBehaviour
 {
+    public EditSpacefraftData editSpacefraftData;
     public GameObject spacecraftPref;
     public spacecraftPathGen spacecraftPathGen;
     public MissionPlanner missionPlanner;
@@ -28,6 +29,8 @@ public class SpacecraftManager : MonoBehaviour
     public TMPro.TextMeshProUGUI selectDateText;
     public GameObject dateObj;
     public GameObject settings;
+
+    public SpacecraftConfig craft;
 
     public void updateCraft()
     {
@@ -51,7 +54,7 @@ public class SpacecraftManager : MonoBehaviour
 
     private void testStart()
     {
-        var config = new SpacecraftConfig
+        craft = new SpacecraftConfig
         {
             DryMass = 500,
             FuelMass = 1200,
@@ -65,7 +68,7 @@ public class SpacecraftManager : MonoBehaviour
             MaxMissionDuration = 3 * 365 * 86400
         };
 
-        StartCoroutine(RunTestMissions(config));
+        StartCoroutine(RunTestMissions(craft));
     }
 
     public void disableOrEnableText(bool enable) //holy jank
@@ -82,7 +85,6 @@ public class SpacecraftManager : MonoBehaviour
 
     private IEnumerator RunTestMissions(SpacecraftConfig config)
     {
-        yield break;
         yield return new WaitForSeconds(1);//LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS 
         
         // --- Parity check: same 2-node Earth->Mars case your old SolveSingleLeg test ran ---
@@ -134,6 +136,7 @@ public class SpacecraftManager : MonoBehaviour
         physicsManager.maxH = 99999999999999;
 
         disableOrEnableText(false);
+        editSpacefraftData.disableText();
         StartCoroutine(simulatingTimeUI.showProgress(launchEpoch, flybyResult.TotalTOF, physicsManager.t, true));
 
         while (physicsManager.t < launchEpoch)
@@ -148,6 +151,7 @@ public class SpacecraftManager : MonoBehaviour
         yield return StartCoroutine(missionPlanner.LaunchMissionCoroutine(flybyResult, config));
 
         disableOrEnableText(false);
+        editSpacefraftData.enableText();
         showWarning.dispalyNotif(2, "Launched mission");
     }
 
