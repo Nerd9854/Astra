@@ -2,105 +2,380 @@ using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Double;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
-[BurstCompile]
+// ---------------------------------------------------------------------------------------------
+//  IAS15 integrator, Burst edition.
+//
+//  Layout:
+//    * BurnState        - blittable per-body burn data (replaces the burn* fields on the old class)
+//    * IAS15Job         - the whole integrator step, compiled by Burst. Runs on flat NativeArrays.
+//    * PhysicsManager   - MonoBehaviour that owns the NativeArrays and calls the job.
+//                         physicsObject is now a thin handle that reads/writes those arrays, so
+//                         code like  fullObjData[i].pos  still works.
+//
+//  IMPORTANT: FloatMode must stay Strict. The position update uses compensated summation
+//  (posLo = y - (newPos - pos)) and FloatMode.Fast would let the compiler "simplify" it away.
+// ---------------------------------------------------------------------------------------------
+
+public struct BurnState
+{
+    public double3 startVel;
+    public double3 targetVel;
+    public double startTime;
+    public double duration;
+    public int active;
+}
+
+[BurstCompile(FloatPrecision.High, FloatMode.Strict, CompileSynchronously = true)]
+public struct IAS15Job : IJob
+{
+    const double Tiny = 1e-300;
+
+    // indices into `stats`
+    public const int StatIter = 0;      // iterations used by the last step
+    public const int StatBad = 1;       // index of first body with NaN/Inf acceleration, or -1
+    public const int StatCloseI = 2;    // closest pair seen this call
+    public const int StatCloseJ = 3;
+    public const int StatSteps = 4;     // steps actually completed this call
+    public const int StatWeirdH = 5;    // number of times the step-size proposal was NaN/Inf/<=0
+
+    public int n;
+    public int steps;
+    public int maxIterations;
+    public int refreshAcc;
+    public double targetAcc, convergenceTol, safetyF, minH, maxH, minHChange, maxHChange;
+
+    [ReadOnly] public NativeArray<double> ratios;   // 7 Gauss-Radau nodes
+    [ReadOnly] public NativeArray<double> invV;     // inverse Vandermonde, 7x7 row-major
+    [ReadOnly] public NativeArray<double> binom;    // Pascal triangle, 8x8 row-major
+    [ReadOnly] public NativeArray<double> mass;     // GM
+
+    public NativeArray<double3> pos, posLo, vel, a0;
+    public NativeArray<double3> poly;       // [i*7 + k]   per-body polynomial coefficients
+    public NativeArray<double3> stageOff;   // [k*n + i]   posLo + predicted displacement at node k
+    public NativeArray<double3> sampled;    // [k*n + i]   acceleration sampled at node k
+    public NativeArray<double3> accBuf;     // [i]
+    public NativeArray<double3> polyTmp;    // [7]
+    public NativeArray<BurnState> burn;
+    public NativeArray<double> clock;       // [0]=t  [1]=h  [2]=closest pair dist^2
+    public NativeArray<int> stats;
+
+    public void Execute()
+    {
+        double t = clock[0];
+        double h = clock[1];
+        clock[2] = double.MaxValue;
+        stats[StatBad] = -1;
+        stats[StatCloseI] = -1;
+        stats[StatCloseJ] = -1;
+        stats[StatSteps] = 0;
+        stats[StatWeirdH] = 0;
+
+        // a0 is already valid from the end of the previous step, only recompute if something
+        // outside changed the state (init, addSpacecraft, commandBurn, external pos/vel writes).
+        if (refreshAcc != 0) ComputeAccFromPos(t);
+
+        for (int s = 0; s < steps && stats[StatBad] < 0; s++)
+        {
+            Step(ref t, ref h);
+            stats[StatSteps] = s + 1;
+        }
+
+        clock[0] = t;
+        clock[1] = h;
+    }
+
+    void Step(ref double t, ref double h)
+    {
+        // a0 doesn't change during the iterations, so this only needs doing once per step
+        double maxAcc = Tiny;
+        for (int i = 0; i < n; i++) maxAcc = math.max(maxAcc, math.cmax(math.abs(a0[i])));
+
+        bool converged = false;
+        int iterations = 0;
+        while (!converged && iterations < maxIterations)
+        {
+            iterations++;
+
+            // predicted displacement at each node (posLo folded in, see ComputeSampledAcc)
+            for (int k = 0; k < 7; k++)
+            {
+                double s = ratios[k];
+                double tau = s * h;
+                int o = k * n;
+                for (int i = 0; i < n; i++)
+                    stageOff[o + i] = posLo[i] + PredictDisp(i, s, tau, h);
+            }
+
+            for (int k = 0; k < 7; k++) ComputeSampledAcc(k, t + ratios[k] * h);
+
+            double maxChange = 0.0;
+            for (int i = 0; i < n; i++)
+            {
+                double3 oldB6 = poly[i * 7 + 6];
+                SolveCo(i);
+                maxChange = math.max(maxChange, math.cmax(math.abs(poly[i * 7 + 6] - oldB6)));
+            }
+
+            if (math.isnan(maxChange)) break;
+            if (maxChange / maxAcc < convergenceTol) converged = true;
+        }
+        stats[StatIter] = iterations;
+
+        // error estimate -> proposed next step
+        double maxRError = 0.0;
+        for (int i = 0; i < n; i++)
+        {
+            double b6 = math.cmax(math.abs(poly[i * 7 + 6]));
+            double am = math.max(math.cmax(math.abs(a0[i])), Tiny);
+            maxRError = math.max(maxRError, b6 / am);
+        }
+
+        double newHProp;
+        if (maxRError <= 0.0) newHProp = h * maxHChange;
+        else newHProp = h * safetyF * math.pow(targetAcc / maxRError, 1.0 / 7.0);
+
+        if (!math.isfinite(newHProp) || newHProp <= 0.0)
+        {
+            stats[StatWeirdH] = stats[StatWeirdH] + 1;
+            newHProp = h * 0.5;
+        }
+
+        double newT = t + h;
+
+        // advance state with compensated summation
+        for (int i = 0; i < n; i++)
+        {
+            double3 y = PredictDisp(i, 1.0, h, h) + posLo[i];
+            double3 p = pos[i];
+            double3 newPos = p + y;
+            posLo[i] = y - (newPos - p);
+            pos[i] = newPos;
+            vel[i] = PredictVel(i, 1.0, h, h);
+        }
+
+        ComputeAccFromPos(newT);
+
+        for (int i = 0; i < n; i++)
+        {
+            BurnState b = burn[i];
+            if (b.active != 0 && newT >= b.startTime + b.duration)
+            {
+                b.active = 0;
+                burn[i] = b;
+            }
+        }
+
+        double hOld = h;
+        double hNew = math.clamp(newHProp, hOld * minHChange, hOld * maxHChange);
+        hNew = math.min(math.max(hNew, minH), maxH);
+        double q = hNew / hOld;
+        for (int i = 0; i < n; i++) RescalePoly(i, q);
+
+        t = newT;
+        h = hNew;
+    }
+
+    // ---- accelerations ------------------------------------------------------------------
+
+    void ComputeAccFromPos(double time)
+    {
+        for (int k = 0; k < n; k++) accBuf[k] = new double3(0, 0, 0);
+
+        double minD2 = clock[2];
+        int ci = stats[StatCloseI];
+        int cj = stats[StatCloseJ];
+
+        for (int i = 0; i < n; i++)
+        {
+            double3 pi = pos[i];
+            double3 li = posLo[i];
+            double mi = mass[i];
+            double3 ai = accBuf[i];
+            for (int j = i + 1; j < n; j++)
+            {
+                double3 diff = (pos[j] - pi) + (posLo[j] - li);
+                double dist2 = math.lengthsq(diff);
+                if (dist2 < minD2) { minD2 = dist2; ci = i; cj = j; }
+                double dist3 = math.max(dist2 * math.sqrt(dist2), Tiny);
+                double3 f = diff / dist3;
+                ai += mass[j] * f;
+                accBuf[j] -= mi * f;
+            }
+            accBuf[i] = ai;
+        }
+
+        clock[2] = minD2;
+        stats[StatCloseI] = ci;
+        stats[StatCloseJ] = cj;
+
+        for (int i = 0; i < n; i++) a0[i] = accBuf[i] + ThrustAcc(i, time);
+
+        for (int i = 0; i < n; i++)
+        {
+            if (IsBad(a0[i]) && stats[StatBad] < 0) stats[StatBad] = i;
+        }
+    }
+
+    // The hot loop: called 7 x iterations x steps. Reads only flat arrays, no pointer chasing.
+    // stageOff already contains posLo + predictedDisp so large positions are subtracted first
+    // (exactly) and the small corrections are added after, same idea as the original.
+    void ComputeSampledAcc(int stage, double time)
+    {
+        int o = stage * n;
+        for (int k = 0; k < n; k++) accBuf[k] = new double3(0, 0, 0);
+
+        for (int i = 0; i < n; i++)
+        {
+            double3 pi = pos[i];
+            double3 oi = stageOff[o + i];
+            double mi = mass[i];
+            double3 ai = accBuf[i];
+            for (int j = i + 1; j < n; j++)
+            {
+                double3 diff = (pos[j] - pi) + (stageOff[o + j] - oi);
+                double dist2 = math.lengthsq(diff);
+                double dist3 = math.max(dist2 * math.sqrt(dist2), Tiny);
+                double3 f = diff / dist3;
+                ai += mass[j] * f;
+                accBuf[j] -= mi * f;
+            }
+            accBuf[i] = ai;
+        }
+
+        for (int i = 0; i < n; i++) sampled[o + i] = accBuf[i] + ThrustAcc(i, time);
+    }
+
+    double3 ThrustAcc(int i, double time)
+    {
+        BurnState b = burn[i];
+        if (b.active == 0) return new double3(0, 0, 0);
+
+        double s = (time - b.startTime) / b.duration;
+        if (s <= 0.0 || s >= 1.0) return new double3(0, 0, 0);
+
+        double q = 1.0 - s;
+        double dProfile = 30.0 * s * s * q * q;
+        return (b.targetVel - b.startVel) * (dProfile / b.duration);
+    }
+
+    // ---- polynomial maths ---------------------------------------------------------------
+
+    double3 PredictDisp(int i, double s, double tau, double h)
+    {
+        int o = i * 7;
+        double3 acc = s * s * s * (poly[o] / 6.0 +
+            s * (poly[o + 1] / 12.0 +
+            s * (poly[o + 2] / 20.0 +
+            s * (poly[o + 3] / 30.0 +
+            s * (poly[o + 4] / 42.0 +
+            s * (poly[o + 5] / 56.0 +
+            s * (poly[o + 6] / 72.0)))))));
+        return vel[i] * tau + 0.5 * a0[i] * (tau * tau) + h * h * acc;
+    }
+
+    double3 PredictVel(int i, double s, double tau, double h)
+    {
+        int o = i * 7;
+        double3 pv = h * (s * s * (poly[o] / 2.0 +
+            s * (poly[o + 1] / 3.0 +
+            s * (poly[o + 2] / 4.0 +
+            s * (poly[o + 3] / 5.0 +
+            s * (poly[o + 4] / 6.0 +
+            s * (poly[o + 5] / 7.0 +
+            s * (poly[o + 6] / 8.0))))))));
+        return vel[i] + a0[i] * tau + pv;
+    }
+
+    void SolveCo(int i)
+    {
+        double3 a = a0[i];
+        double3 d0 = sampled[i] - a;
+        double3 d1 = sampled[n + i] - a;
+        double3 d2 = sampled[2 * n + i] - a;
+        double3 d3 = sampled[3 * n + i] - a;
+        double3 d4 = sampled[4 * n + i] - a;
+        double3 d5 = sampled[5 * n + i] - a;
+        double3 d6 = sampled[6 * n + i] - a;
+
+        int o = i * 7;
+        for (int r = 0; r < 7; r++)
+        {
+            int ro = r * 7;
+            poly[o + r] = invV[ro] * d0 + invV[ro + 1] * d1 + invV[ro + 2] * d2 + invV[ro + 3] * d3
+                        + invV[ro + 4] * d4 + invV[ro + 5] * d5 + invV[ro + 6] * d6;
+        }
+    }
+
+    void RescalePoly(int i, double q)
+    {
+        int o = i * 7;
+        double qm = 1.0;
+        for (int m = 1; m <= 7; m++)
+        {
+            qm *= q;
+            double3 c = new double3(0, 0, 0);
+            for (int k = m - 1; k < 7; k++) c += binom[(k + 1) * 8 + m] * poly[o + k];
+            polyTmp[m - 1] = c * qm;
+        }
+        for (int m = 0; m < 7; m++) poly[o + m] = polyTmp[m];
+    }
+
+    static bool IsBad(double3 v)
+    {
+        return !math.all(math.isfinite(v));
+    }
+}
+
 public class PhysicsManager : MonoBehaviour
 {
-
-    //physics = fast
-    //bugs = off
-
-
     public EngineManager EngineManager;
     public SceneManager SceneManager;
-    public physicsObject[] fullObjData; // in the thing of [[posx, pos, y, posz, accx, accy, accz]]
+    public physicsObject[] fullObjData;
     private int numbOfObjects;
     public int spacecraftID = -1;
 
+    // ---- native storage (flat, one array per field) -------------------------------------
+    NativeArray<double3> aPos, aPosLo, aVel, aA0, aPoly, aStageOff, aSampled, aAccBuf, aPolyTmp;
+    NativeArray<double> aMass, aRatios, aInvV, aBinom, aClock;
+    NativeArray<int> aStats;
+    NativeArray<BurnState> aBurn;
+
+    bool accDirty = true;
+    bool closeWarnActive;
+
+    /// <summary>
+    /// Thin handle so existing code (fullObjData[i].pos etc.) keeps working.
+    /// The data lives in the manager's NativeArrays. Only read these between physicsUpdate calls.
+    /// </summary>
     public class physicsObject
     {
-        public int ID; //this should be its index in the array, but if i wnat to delete elemnts this may be smart? idk it means less usefull info will be in cache [come bak to this]
-        public double3 pos;
-        public double3 vel;
-        public double3 acc;
-        public double3 posLo;
-        public double3 a0;
-        public double3[] predictedDisp = new double3[7];
-        public double3[] poly = new double3[7];
-        public double3[] sampledAcc = new double3[7];
-        public double mass; //GM not Kg
+        public readonly int ID;
+        readonly PhysicsManager m;
 
-        public bool isThrusting = false;
-        public double3 burnStartVel;
-        public double3 burnTargetVel;
-        public double burnStartTime;
-        public double burnDuration;
+        public physicsObject(PhysicsManager manager, int id) { m = manager; ID = id; }
+
+        public double3 pos { get { return m.aPos[ID]; } set { m.aPos[ID] = value; m.accDirty = true; } }
+        public double3 vel { get { return m.aVel[ID]; } set { m.aVel[ID] = value; m.accDirty = true; } }
+        public double3 acc { get { return m.aA0[ID]; } }
+        public double3 a0 { get { return m.aA0[ID]; } }
+        public double mass { get { return m.aMass[ID]; } set { m.aMass[ID] = value; m.accDirty = true; } }
+
+        public bool isThrusting { get { return m.aBurn[ID].active != 0; } }
+        public double3 burnStartVel { get { return m.aBurn[ID].startVel; } }
+        public double3 burnTargetVel { get { return m.aBurn[ID].targetVel; } }
+        public double burnStartTime { get { return m.aBurn[ID].startTime; } }
+        public double burnDuration { get { return m.aBurn[ID].duration; } }
     }
 
-    public void physicsInit(int lNumOfObjects)
-    {
-        numbOfObjects = lNumOfObjects + 1;
-        fullObjData = new physicsObject[numbOfObjects];
-        accBuffer = new double3[numbOfObjects];
-
-        for (int i = 0; i < numbOfObjects; i++)
-        {
-            fullObjData[i] = new physicsObject();
-
-            fullObjData[i].ID = i;
-            fullObjData[i].pos = EngineManager.initalPos[i];
-            fullObjData[i].vel = EngineManager.initalVel[i];
-            fullObjData[i].acc = new double3(0, 0, 0);
-            for (int j = 0; j < 7; j++) fullObjData[i].poly[j] = new double3(0, 0, 0);
-            fullObjData[i].mass = SceneManager.allBodys[i].GetComponent<Body>().mass;
-        }
-        setupMat();
-    }
-
-    public physicsObject addSpacecraft(double3 pos, double3 vel, double gm = 0.0)
-    {
-        int newID = fullObjData.Length;
-        System.Array.Resize(ref fullObjData, fullObjData.Length + 1);
-
-        physicsObject craft = new physicsObject();
-        craft.ID = newID;
-        craft.pos = pos;
-        craft.vel = vel;
-        craft.acc = new double3(0, 0, 0);
-        craft.a0 = new double3(0, 0, 0);
-        craft.mass = gm;
-        for (int j = 0; j < 7; j++) craft.poly[j] = new double3(0, 0, 0);
-
-        fullObjData[newID] = craft;
-        numbOfObjects = fullObjData.Length;
-        System.Array.Resize(ref accBuffer, fullObjData.Length);
-        spacecraftID = newID;
-        return craft;
-    }
-
-    public void commandBurn(physicsObject target, double3 targetVel, double duration)
-    {
-        target.burnStartVel = target.vel;
-        target.burnTargetVel = targetVel;
-        target.burnStartTime = t;
-        target.burnDuration = math.max(duration, 1e-6); // guard against 0/negative duration
-        target.isThrusting = true;
-    }
-
-    private double[] ratios = { 0.0562625605369221, 0.1802406917368924, 0.3526247171131696, 0.5471536263305554, 0.7342101772154105, 0.8853209468390957, 0.9775206135612875 };
+    // ---- tunables -----------------------------------------------------------------------
     public double t = 0;
     public double h = 0.1;
     public double targetAcc = 1e-9;
-    private double thresh = 0.000001;
     public double convergenceTol = 1e-12;
-    private double[,] invertedVandRaw;
-    private double3[] accBuffer;
-    private double[] coScratchX = new double[7];
-    private double[] coScratchY = new double[7];
-    private double[] coScratchZ = new double[7];
-    private int iterations;
     public int maxIterations = 100;
     public double maxHChange;
     public double minHChange;
@@ -108,16 +383,105 @@ public class PhysicsManager : MonoBehaviour
     public double minH = 1e-8;
     public double maxH = 100;
 
-    private bool converged;
-    private double maxChange;
+    [Tooltip("Integrator steps per physicsUpdate() call, all done inside one Burst call.")]
+    public int stepsPerUpdate = 1;
 
-    private double[,] binom = new double[8, 8];
+    [Tooltip("Log a warning (once) when two bodies get closer than sqrt(this).")]
+    public double temp = 1e4;
+
+    // diagnostics
+    public int lastIterations;
+    public int lastStepsDone;
+
+    private double[] ratios = { 0.0562625605369221, 0.1802406917368924, 0.3526247171131696, 0.5471536263305554, 0.7342101772154105, 0.8853209468390957, 0.9775206135612875 };
 
     public bool paused = false;
     public void pauseOrPlay()
     {
         paused = paused != true;
     }
+
+    // ---- setup --------------------------------------------------------------------------
+
+    public void physicsInit(int lNumOfObjects)
+    {
+        FreeAll();
+
+        numbOfObjects = lNumOfObjects + 1;
+        int n = numbOfObjects;
+
+        aPos = Alloc<double3>(n);
+        aPosLo = Alloc<double3>(n);
+        aVel = Alloc<double3>(n);
+        aA0 = Alloc<double3>(n);
+        aMass = Alloc<double>(n);
+        aBurn = Alloc<BurnState>(n);
+        aPoly = Alloc<double3>(n * 7);
+        AllocScratch(n);
+
+        aPolyTmp = Alloc<double3>(7);
+        aRatios = Alloc<double>(7);
+        aInvV = Alloc<double>(49);
+        aBinom = Alloc<double>(64);
+        aClock = Alloc<double>(4);
+        aStats = Alloc<int>(8);
+
+        fullObjData = new physicsObject[n];
+        for (int i = 0; i < n; i++)
+        {
+            fullObjData[i] = new physicsObject(this, i);
+            aPos[i] = EngineManager.initalPos[i];
+            aVel[i] = EngineManager.initalVel[i];
+            aMass[i] = SceneManager.allBodys[i].GetComponent<Body>().mass;
+        }
+
+        setupMat();
+        accDirty = true;
+    }
+
+    public physicsObject addSpacecraft(double3 pos, double3 vel, double gm = 0.0)
+    {
+        int newID = fullObjData.Length;
+        int newN = newID + 1;
+
+        Grow(ref aPos, newN);
+        Grow(ref aPosLo, newN);
+        Grow(ref aVel, newN);
+        Grow(ref aA0, newN);
+        Grow(ref aMass, newN);
+        Grow(ref aBurn, newN);
+        Grow(ref aPoly, newN * 7);
+        FreeScratch();
+        AllocScratch(newN);
+
+        aPos[newID] = pos;
+        aVel[newID] = vel;
+        aMass[newID] = gm;
+
+        System.Array.Resize(ref fullObjData, newN);
+        physicsObject craft = new physicsObject(this, newID);
+        fullObjData[newID] = craft;
+
+        numbOfObjects = newN;
+        spacecraftID = newID;
+        accDirty = true;
+        return craft;
+    }
+
+    public void commandBurn(physicsObject target, double3 targetVel, double duration)
+    {
+        int id = target.ID;
+        aBurn[id] = new BurnState
+        {
+            startVel = aVel[id],
+            targetVel = targetVel,
+            startTime = t,
+            duration = math.max(duration, 1e-6), // guard against 0/negative duration
+            active = 1
+        };
+        accDirty = true;
+    }
+
     private void setupMat()
     {
         double[,] vandermondeDat = new double[7, 7];
@@ -129,282 +493,138 @@ public class PhysicsManager : MonoBehaviour
                 vandermondeDat[i, j] = vandermondeDat[i, j - 1] * ratios[i];
             }
         }
-        Matrix<double> vandermondeMatrix = DenseMatrix.OfArray(vandermondeDat);
-        invertedVandRaw = vandermondeMatrix.Inverse().ToArray();
+        double[,] inv = DenseMatrix.OfArray(vandermondeDat).Inverse().ToArray();
+
+        for (int r = 0; r < 7; r++)
+        {
+            aRatios[r] = ratios[r];
+            for (int c = 0; c < 7; c++) aInvV[r * 7 + c] = inv[r, c];
+        }
 
         for (int n = 0; n < 8; n++)
         {
-            binom[n, 0] = 1;
-            for (int m = 1; m <= n; m++) binom[n, m] = binom[n - 1, m - 1] + binom[n - 1, m];
+            aBinom[n * 8] = 1;
+            for (int m = 1; m <= n; m++)
+                aBinom[n * 8 + m] = aBinom[(n - 1) * 8 + m - 1] + aBinom[(n - 1) * 8 + m];
         }
     }
 
-    private readonly double3[] polyTmp = new double3[7];
-
-    private void rescalePoly(physicsObject obj, double q)
-    {
-        double qm = 1.0;
-        for (int m = 1; m <= 7; m++)
-        {
-            qm *= q;
-            double3 c = new double3(0, 0, 0);
-            for (int k = m - 1; k < 7; k++) c += binom[k + 1, m] * obj.poly[k];
-            polyTmp[m - 1] = c * qm;
-        }
-        for (int m = 0; m < 7; m++) obj.poly[m] = polyTmp[m];
-    }
+    // ---- the update ---------------------------------------------------------------------
 
     public void physicsUpdate()
     {
-        if(paused) return;
+        if (paused || !aPos.IsCreated) return;
 
-        converged = false;
-        iterations = 0;
+        aClock[0] = t;
+        aClock[1] = h;
 
-        computeAllAccFromPos(t);
-
-        while (!converged && iterations < maxIterations)
+        var job = new IAS15Job
         {
-            iterations++;
-            maxChange = 0;
+            n = numbOfObjects,
+            steps = math.max(1, stepsPerUpdate),
+            maxIterations = maxIterations,
+            refreshAcc = accDirty ? 1 : 0,
+            targetAcc = targetAcc,
+            convergenceTol = convergenceTol,
+            safetyF = safetyF,
+            minH = minH,
+            maxH = maxH,
+            minHChange = minHChange,
+            maxHChange = maxHChange,
 
-            foreach (physicsObject obj in fullObjData)
+            ratios = aRatios,
+            invV = aInvV,
+            binom = aBinom,
+            mass = aMass,
+
+            pos = aPos,
+            posLo = aPosLo,
+            vel = aVel,
+            a0 = aA0,
+            poly = aPoly,
+            stageOff = aStageOff,
+            sampled = aSampled,
+            accBuf = aAccBuf,
+            polyTmp = aPolyTmp,
+            burn = aBurn,
+            clock = aClock,
+            stats = aStats
+        };
+
+        job.Run(); // synchronous, but compiled by Burst
+
+        accDirty = false;
+        t = aClock[0];
+        h = aClock[1];
+
+        lastIterations = aStats[IAS15Job.StatIter];
+        lastStepsDone = aStats[IAS15Job.StatSteps];
+
+        int bad = aStats[IAS15Job.StatBad];
+        if (bad >= 0) Debug.LogError($"Body {bad} has invalid acceleration: {aA0[bad]}");
+
+        if (aStats[IAS15Job.StatWeirdH] > 0) Debug.LogError($"Yo h is weird (proposal was NaN/Inf/<=0), halved it. h = {h}");
+
+        double minD2 = aClock[2];
+        if (minD2 < temp)
+        {
+            if (!closeWarnActive)
             {
-                for (int i = 0; i < 7; i++)
-                {
-                    double tau = ratios[i] * h;
-                    obj.predictedDisp[i] = predictDisp(obj, ratios[i] * h);
-                }
-            }
-
-            for (int i = 0; i < 7; i++)
-            {
-                computeAllSampledAcc(i, t + ratios[i] * h);
-            }
-
-            foreach (physicsObject obj in fullObjData)
-            {
-                double3 oldB6 = obj.poly[6];
-                solveCo(obj.sampledAcc, obj.a0, obj.poly);
-                double3 newB6 = obj.poly[6];
-                double diff = math.cmax(math.abs(newB6 - oldB6));
-                maxChange = math.max(maxChange, diff);
-            }
-
-            double maxAcc = 0.0;
-            foreach (physicsObject obj in fullObjData)
-            {
-                maxAcc = math.max(maxAcc, math.cmax(math.abs(obj.a0)));
-            }
-            maxAcc = math.max(maxAcc, 1e-300);
-
-            double rDiff = maxChange / maxAcc;
-            if (rDiff < convergenceTol) converged = true;
-        }
-
-        double maxRError = 0.0;
-        foreach (physicsObject obj in fullObjData)
-        {
-            double b6mag = math.cmax(math.abs(obj.poly[6]));
-            double amag = math.max(math.cmax(math.abs(obj.a0)), 1e-300);
-            maxRError = math.max(maxRError, b6mag / amag);
-        }
-        /*double maxB6 = 0.0;
-        double maxTAcc = 0.0;
-        foreach (physicsObject obj in fullObjData)
-        {
-            maxB6 = math.max(maxB6, math.cmax(math.abs(obj.poly[6])));
-            maxTAcc = math.max(maxTAcc, math.cmax(math.abs(obj.a0)));
-        }
-        maxTAcc = math.max(maxTAcc, 1e-300);
-        double maxRError = maxB6 / maxTAcc;*/
-
-        double newHProp;
-        if (maxRError <= 0.0) newHProp = h * maxHChange;
-        else newHProp = h * safetyF * math.pow(targetAcc / maxRError, 1.0 / 7.0);
-
-        if (double.IsNaN(newHProp) || double.IsInfinity(newHProp) || newHProp <= 0)
-        {
-            Debug.LogError($"Yo h is weird {newHProp}");
-            newHProp = h * 0.5;
-        }
-
-        foreach (var obj in fullObjData)
-            if (double.IsNaN(obj.a0.x) || double.IsInfinity(obj.a0.x))
-                Debug.LogError($"Body {obj.ID} has bad acceleration: {obj.a0}");
-
-        double newT = t + h;
-
-        foreach (physicsObject obj in fullObjData)
-        {
-            double3 y = predictDisp(obj, h) + obj.posLo;
-            double3 newPos = obj.pos + y;
-            obj.posLo = y - (newPos - obj.pos);
-            obj.pos = newPos;
-            obj.vel = predictVel(obj, h);
-        }
-
-        computeAllAccFromPos(newT);
-
-        foreach (physicsObject obj in fullObjData)
-        {
-            obj.acc = obj.a0;
-            if (obj.isThrusting && newT >= obj.burnStartTime + obj.burnDuration)
-            {
-                obj.isThrusting = false;
+                closeWarnActive = true;
+                Debug.LogWarning($"{aStats[IAS15Job.StatCloseI]} and {aStats[IAS15Job.StatCloseJ]} are closee   {minD2}");
             }
         }
-
-        double hOld = h;
-        double hNew = math.clamp(newHProp, hOld * minHChange, hOld * maxHChange);
-        hNew = math.min(math.max(hNew, minH), maxH);
-        foreach (physicsObject obj in fullObjData) rescalePoly(obj, hNew / hOld);
-        t = newT;
-        h = hNew;
+        else closeWarnActive = false;
     }
 
-    public double temp = 1e4;
-    private void computeAllAccFromPos(double sampleTime)
+    // ---- native memory helpers ----------------------------------------------------------
+
+    static NativeArray<T> Alloc<T>(int len) where T : struct
     {
-        for (int k = 0; k < fullObjData.Length; k++) accBuffer[k] = new double3(0, 0, 0);
-
-        for (int i = 0; i < fullObjData.Length; i++)
-        {
-            physicsObject bi = fullObjData[i];
-            for (int j = i + 1; j < fullObjData.Length; j++)
-            {
-                physicsObject bj = fullObjData[j];
-                double3 diff = (bj.pos - bi.pos) + (bj.posLo - bi.posLo);
-                double dist2 = math.lengthsq(diff);
-                double dist3 = math.max(dist2 * math.sqrt(dist2), 1e-300);
-                double3 diffOverDist3 = diff / dist3;
-                if (dist2 < temp) Debug.LogWarning($"{bi.ID} and {bj.ID} are closee   {dist2}");
-                accBuffer[i] += bj.mass * diffOverDist3;
-                accBuffer[j] -= bi.mass * diffOverDist3;
-            }
-        }
-
-        for (int i = 0; i < fullObjData.Length; i++)
-        {
-            fullObjData[i].a0 = accBuffer[i] + getThrustAcc(fullObjData[i], sampleTime);
-        }
-
-        for (int i = 0; i < fullObjData.Length; i++)
-        {
-            if (IsBad(fullObjData[i].a0))
-                Debug.LogError($"Body {fullObjData[i].ID} has invalid acceleration: {fullObjData[i].a0}");
-        }
+        return new NativeArray<T>(len, Allocator.Persistent, NativeArrayOptions.ClearMemory);
     }
 
-    private void computeAllSampledAcc(int stage, double sampleTime)
+    static void Grow<T>(ref NativeArray<T> a, int newLen) where T : struct
     {
-        for (int k = 0; k < fullObjData.Length; k++) accBuffer[k] = new double3(0, 0, 0);
-
-        for (int i = 0; i < fullObjData.Length; i++)
+        var neu = Alloc<T>(newLen);
+        if (a.IsCreated)
         {
-            physicsObject bi = fullObjData[i];
-            for (int j = i + 1; j < fullObjData.Length; j++)
-            {
-                physicsObject bj = fullObjData[j];
-                double3 diff = (bj.pos - bi.pos) + ((bj.posLo - bi.posLo) + (bj.predictedDisp[stage] - bi.predictedDisp[stage])); double dist2 = math.lengthsq(diff);
-                double dist3 = math.max(dist2 * math.sqrt(dist2), 1e-300);
-                double3 diffOverDist3 = diff / dist3;
-                accBuffer[i] += bj.mass * diffOverDist3;
-                accBuffer[j] -= bi.mass * diffOverDist3;
-            }
+            NativeArray<T>.Copy(a, neu, a.Length);
+            a.Dispose();
         }
-
-        for (int i = 0; i < fullObjData.Length; i++)
-        {
-            fullObjData[i].sampledAcc[stage] = accBuffer[i] + getThrustAcc(fullObjData[i], sampleTime);
-        }
+        a = neu;
     }
 
-    private double3 getThrustAcc(physicsObject obj, double sampleTime)
+    static void Free<T>(ref NativeArray<T> a) where T : struct
     {
-        if (!obj.isThrusting) return new double3(0, 0, 0);
-
-        double s = (sampleTime - obj.burnStartTime) / obj.burnDuration;
-        if (s <= 0.0 || s >= 1.0) return new double3(0, 0, 0);
-
-        double dProfile_ds = 30.0 * s * s * (1.0 - s) * (1.0 - s);
-        double3 deltaV = obj.burnTargetVel - obj.burnStartVel;
-        return deltaV * (dProfile_ds / obj.burnDuration);
+        if (a.IsCreated) a.Dispose();
     }
 
-    private double3 predictDisp(physicsObject obj, double tau)
+    void AllocScratch(int n)
     {
-        double s = tau / h;
-        double3 predAcc = h * h * distMovedByAcc(obj.poly, s);
-        return obj.vel * tau + 0.5 * obj.a0 * (tau * tau) + predAcc;
+        aStageOff = Alloc<double3>(n * 7);
+        aSampled = Alloc<double3>(n * 7);
+        aAccBuf = Alloc<double3>(n);
     }
 
-    private double3 predictVel(physicsObject obj, double tau)
+    void FreeScratch()
     {
-        double s = tau / h;
-        double3 predVel = h * distMovedByVel(obj.poly, s);
-        double vX = obj.vel.x + obj.a0.x * tau + predVel.x;
-        double vY = obj.vel.y + obj.a0.y * tau + predVel.y;
-        double vZ = obj.vel.z + obj.a0.z * tau + predVel.z;
-        return new double3(vX, vY, vZ);
+        Free(ref aStageOff);
+        Free(ref aSampled);
+        Free(ref aAccBuf);
     }
 
-    private double3 distMovedByAcc(double3[] poly, double tau)
+    void FreeAll()
     {
-        double3 predicted = new double3(0, 0, 0);
-
-        for (int i = 0; i < 3; i++)
-        {
-            predicted[i] = tau * tau * tau * (poly[0][i] / 6.0 +
-                tau * (poly[1][i] / 12.0 +
-                tau * (poly[2][i] / 20.0 +
-                tau * (poly[3][i] / 30.0 +
-                tau * (poly[4][i] / 42.0 +
-                tau * (poly[5][i] / 56.0 +
-                tau * (poly[6][i] / 72.0)))))));
-        }
-        return predicted;
+        Free(ref aPos); Free(ref aPosLo); Free(ref aVel); Free(ref aA0);
+        Free(ref aPoly); Free(ref aPolyTmp);
+        Free(ref aMass); Free(ref aRatios); Free(ref aInvV); Free(ref aBinom); Free(ref aClock);
+        Free(ref aStats); Free(ref aBurn);
+        FreeScratch();
     }
 
-    private double3 distMovedByVel(double3[] poly, double tau)
+    void OnDestroy()
     {
-        double3 predicted = new double3(0, 0, 0);
-
-        for (int i = 0; i < 3; i++)
-        {
-            predicted[i] = tau * tau * (poly[0][i] / 2.0 +
-                tau * (poly[1][i] / 3.0 +
-                tau * (poly[2][i] / 4.0 +
-                tau * (poly[3][i] / 5.0 +
-                tau * (poly[4][i] / 6.0 +
-                tau * (poly[5][i] / 7.0 +
-                tau * (poly[6][i] / 8.0)))))));
-
-        }
-        return predicted;
-    }
-
-    private void solveCo(double3[] sampledAcc, double3 a0, double3[] outPoly)
-    {
-        for (int i = 0; i < 7; i++)
-        {
-            double3 delta = sampledAcc[i] - a0;
-
-            coScratchX[i] = delta.x;
-            coScratchY[i] = delta.y;
-            coScratchZ[i] = delta.z;
-        }
-
-        for (int i = 0; i < 7; i++)
-        {
-            outPoly[i].x = invertedVandRaw[i, 0] * coScratchX[0] + invertedVandRaw[i, 1] * coScratchX[1] + invertedVandRaw[i, 2] * coScratchX[2] + invertedVandRaw[i, 3] * coScratchX[3] + invertedVandRaw[i, 4] * coScratchX[4] + invertedVandRaw[i, 5] * coScratchX[5] + invertedVandRaw[i, 6] * coScratchX[6];
-            outPoly[i].y = invertedVandRaw[i, 0] * coScratchY[0] + invertedVandRaw[i, 1] * coScratchY[1] + invertedVandRaw[i, 2] * coScratchY[2] + invertedVandRaw[i, 3] * coScratchY[3] + invertedVandRaw[i, 4] * coScratchY[4] + invertedVandRaw[i, 5] * coScratchY[5] + invertedVandRaw[i, 6] * coScratchY[6];
-            outPoly[i].z = invertedVandRaw[i, 0] * coScratchZ[0] + invertedVandRaw[i, 1] * coScratchZ[1] + invertedVandRaw[i, 2] * coScratchZ[2] + invertedVandRaw[i, 3] * coScratchZ[3] + invertedVandRaw[i, 4] * coScratchZ[4] + invertedVandRaw[i, 5] * coScratchZ[5] + invertedVandRaw[i, 6] * coScratchZ[6];
-        }
-    }
-
-    private bool IsBad(double3 v)
-    {
-        return double.IsNaN(v.x) || double.IsNaN(v.y) || double.IsNaN(v.z) || double.IsInfinity(v.x) || double.IsInfinity(v.y) || double.IsInfinity(v.z);
+        FreeAll();
     }
 }

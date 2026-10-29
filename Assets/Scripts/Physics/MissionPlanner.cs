@@ -922,7 +922,7 @@ public class MissionPlanner : MonoBehaviour
             yield return null;
         }
 
-        var craft = physicsManager.addSpacecraft(spawnPos, spawnVel, 0.0);
+        var craft = physicsManager.addSpacecraft(spawnPos, spawnVel, (config.DryMass+config.FuelMass+config.PayloadMass) * engineManager.g);
         physicsManager.commandBurn(craft, legs[0].V_departure, 60.0);
 
         if (config.ArrivalMode == ArrivalMode.OrbitInsertion)

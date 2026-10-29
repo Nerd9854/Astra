@@ -1,10 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class EditSpacefraftData : MonoBehaviour
 {
+    public PhysicsManager PhysicsManager;
     public GameObject settings;
     public GameObject editDataObj;
 
@@ -63,7 +65,7 @@ public class EditSpacefraftData : MonoBehaviour
         SpacecraftManager.craft.Isp = isp * ispUnitsMulti;
         SpacecraftManager.craft.Thrust = thrust * thrustUnitsMulti;
 
-
+        PhysicsManager.fullObjData[PhysicsManager.spacecraftID].mass = (SpacecraftManager.craft.DryMass + SpacecraftManager.craft.FuelMass + SpacecraftManager.craft.PayloadMass) * PhysicsManager.EngineManager.g;
         settings.SetActive(false);
         editDataObj.SetActive(false);
 
