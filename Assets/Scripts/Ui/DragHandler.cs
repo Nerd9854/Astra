@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -7,12 +9,37 @@ public class DragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     private Transform itemTransform;
     private Transform contentContainer;
     public Transform canvasTransform;
+    public TMP_Dropdown dropdown;
     private int originalSiblingIndex;
 
     void Awake()
     {
         itemTransform = transform.parent;
         contentContainer = itemTransform.parent;
+    }
+
+    public void updateValues(EngineManager engineManager)
+    {
+        List<string> allNames = new List<string>();
+        allNames.Add("Mercury");
+        allNames.Add("Venus");
+        allNames.Add("Earth");
+        allNames.Add("Mars");
+        allNames.Add("Jupiter");
+        allNames.Add("Saturn");
+        allNames.Add("Uranus");
+        allNames.Add("Neptune");
+
+        foreach (string name in engineManager.namelookup.Values)
+        {
+            string titleName = char.ToUpper(name[0]) + name[1..].ToLower();
+            if (!allNames.Contains(titleName)) allNames.Add(titleName);
+        }
+        dropdown.ClearOptions();
+
+        dropdown.AddOptions(allNames);
+
+        dropdown.RefreshShownValue();
     }
 
     public void OnBeginDrag(PointerEventData eventData)

@@ -1,10 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using System.Net.NetworkInformation;
+using TMPro;
 
 public class ListManager : MonoBehaviour
 {
     // from a tutorial, being rushed so baciaclly copyed/pasted + a few edits
+    public EngineManager engineManager;
     public GameObject itemPrefab;
     public Transform contentPanel;
     public Transform canvasTransform;
@@ -20,6 +23,7 @@ public class ListManager : MonoBehaviour
 
         //newItem.GetComponentInChildren<TMPro.TMP_Dropdown>().name = "List Item #" + itemCounter;
         newItem.transform.Find("Drag").GetComponent<DragHandler>().canvasTransform = canvasTransform; // 0% jank
+        newItem.transform.Find("Drag").GetComponent<DragHandler>().updateValues(engineManager); // 0% jank
         Button removeBtn = newItem.transform.Find("RemoveButton").GetComponent<Button>();
         removeBtn.onClick.AddListener(() => RemoveItem(newItem));
 
@@ -32,14 +36,18 @@ public class ListManager : MonoBehaviour
         Destroy(item);
     }
 
-    public void PrintCurrentPositions()
+    public string[] addInterSteps(string startPos, string endPos)
     {
-        Debug.Log("--- Current List Order ---");
+        List<string> points = new List<string>();
 
+        points.Add(startPos);
         for (int i = 0; i < contentPanel.childCount; i++)
         {
-            Transform child = contentPanel.GetChild(i);
-            Debug.Log($"Position {i + 1}: {child.name}");
+            TMP_Dropdown drop = contentPanel.GetChild(i).transform.Find("Text").GetComponent<TMPro.TMP_Dropdown>();
+            points.Add(drop.options[drop.value].text.ToUpper());
         }
+        points.Add(endPos);
+
+        return points.ToArray();
     }
 }

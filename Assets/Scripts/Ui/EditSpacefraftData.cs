@@ -65,7 +65,8 @@ public class EditSpacefraftData : MonoBehaviour
         SpacecraftManager.craft.Isp = isp * ispUnitsMulti;
         SpacecraftManager.craft.Thrust = thrust * thrustUnitsMulti;
 
-        PhysicsManager.fullObjData[PhysicsManager.spacecraftID].mass = (SpacecraftManager.craft.DryMass + SpacecraftManager.craft.FuelMass + SpacecraftManager.craft.PayloadMass) * PhysicsManager.EngineManager.g;
+        if(SpacecraftManager.spacecraftActive) PhysicsManager.fullObjData[PhysicsManager.spacecraftID].mass = (SpacecraftManager.craft.DryMass + SpacecraftManager.craft.FuelMass + SpacecraftManager.craft.PayloadMass) * PhysicsManager.EngineManager.g;
+        
         settings.SetActive(false);
         editDataObj.SetActive(false);
 

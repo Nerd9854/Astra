@@ -55,7 +55,7 @@ public class BodyManager : MonoBehaviour
         }
     }
 
-    private bool spacecraftActive = true;
+    //private bool spacecraftActive = true;
     private static readonly int camPosID = Shader.PropertyToID("_CamPos");
     public int temp;
     public void updateBodys()
@@ -91,7 +91,7 @@ public class BodyManager : MonoBehaviour
                 if (math.lengthsq(distance) < cullingdistsq)
                 {
 
-                    if (spacecraftActive) spacecraftMesh.SetActive(false);
+                    //if (spacecraftActive) spacecraftMesh.SetActive(false);
                 }
                 SpacecraftManager.spacecraft.transform.position = (float3)(gamepos);
             }

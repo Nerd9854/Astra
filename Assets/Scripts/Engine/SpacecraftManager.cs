@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using TMPro;
 using Unity.Mathematics;
 using Unity.VisualScripting;
@@ -46,7 +47,6 @@ public class SpacecraftManager : MonoBehaviour
         sunTransform = sceneManager.allBodys[engineManager.bodylookup["SUN"]].transform;
         spacecraft = Instantiate(spacecraftPref, this.transform);
         bodyLabeler.spacecraftTransform = spacecraft.transform;
-        spacecraftActive = true;
         missionPlanner.Init();
         spacecraftPathGen.genStart();
         testStart();
@@ -68,7 +68,9 @@ public class SpacecraftManager : MonoBehaviour
             MaxMissionDuration = 3 * 365 * 86400
         };
 
-        StartCoroutine(RunTestMissions(craft));
+        MissionResult h = new MissionResult();
+
+        //StartCoroutine(flyMission(h));//craft));
     }
 
     public void disableOrEnableText(bool enable) //holy jank
@@ -83,10 +85,14 @@ public class SpacecraftManager : MonoBehaviour
         }
     }
 
-    private IEnumerator RunTestMissions(SpacecraftConfig config)
+    public void flyMission(MissionResult mission)
     {
-        yield return new WaitForSeconds(1);//LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS LOOK AT THIS 
-        
+        StartCoroutine(startMission(mission));
+    }
+
+    private IEnumerator startMission(MissionResult mission)
+    {
+        Debug.Log("yo2");
         // --- Parity check: same 2-node Earth->Mars case your old SolveSingleLeg test ran ---
         /*showWarning.dispalyNotif(1, "Solving Earth->Mars (parity check)");
         var directResult = missionPlanner.PlanMission(
@@ -106,29 +112,34 @@ public class SpacecraftManager : MonoBehaviour
         yield return null;*/
 
         // --- Multi-leg check: Earth -> Venus flyby -> Mars, exercises the chain + periapsis code ---
-        showWarning.dispalyNotif(1, "Solving Earth->Venus->Mars (flyby)");
-        var flybyResult = missionPlanner.PlanMission(
+
+        /*showWarning.dispalyNotif(1, "Solving Earth->Venus->Mars (flyby)");
+        var mission = missionPlanner.PlanMission(
             new[] { "EARTH", "VENUS", "MARS" },
             new[] { NodeType.Start, NodeType.Flyby, NodeType.End },
-            config,
+            craft,
             tofMinDays: 60, tofMaxDaysPerLeg: 800,
             pop: 40, gens: 150);
+        */
 
         var legTofs = new List<string>();
-        foreach (var leg in flybyResult.Legs) legTofs.Add((leg.TOF / 86400).ToString("F1"));
+        foreach (var leg in mission.Legs) legTofs.Add((leg.TOF / 86400).ToString("F1"));
 
         /*Debug.Log($"[Test] Earth->Venus->Mars: t0={flybyResult.Nodes[0].Epoch / 86400:F1}d, " +
                   $"leg TOFs={string.Join("/", legTofs)}d, dV={flybyResult.TotalDeltaV:F4}, " +
                   $"feasible={flybyResult.Feasible}, margin={flybyResult.MassMargin:F1}kg");*/
 
-        if (!flybyResult.Feasible)
+        if (!mission.Feasible)
         {
             showWarning.dispalyNotif(2, "Mission infeasible");
             yield break;
         }
 
+        Debug.Log("yo3");
         speedViewer.overide = true;
-        double launchEpoch = flybyResult.Nodes[0].Epoch;
+        double launchEpoch = mission.Nodes[0].Epoch;
+
+        showWarning.dispalyNotif(2, $"Found suitable mission, launching in {(launchEpoch - physicsManager.t) / 86400:F1} days");
 
         //showWarning.dispalyNotif(1, $"Simulating {(launchEpoch - physicsManager.t) / 86400:F1} days\nCalculating Estimate");
         //StartCoroutine(estTime(launchEpoch - physicsManager.t));
@@ -137,7 +148,7 @@ public class SpacecraftManager : MonoBehaviour
 
         disableOrEnableText(false);
         editSpacefraftData.disableText();
-        StartCoroutine(simulatingTimeUI.showProgress(launchEpoch, flybyResult.TotalTOF, physicsManager.t, true));
+        StartCoroutine(simulatingTimeUI.showProgress(launchEpoch, mission.TotalTOF, physicsManager.t, true));
 
         while (physicsManager.t < launchEpoch)
         {
@@ -145,10 +156,19 @@ public class SpacecraftManager : MonoBehaviour
             if (timeLeft < physicsManager.maxH)
                 physicsManager.maxH = timeLeft;
             yield return null;
+            Debug.Log("Looping");
+            if(timeLeft < 1)
+            {
+                break;
+            }
         }
+        Debug.Log("yo4");
 
         speedViewer.overide = false;
-        yield return StartCoroutine(missionPlanner.LaunchMissionCoroutine(flybyResult, config));
+        spacecraftActive = true;
+        yield return StartCoroutine(missionPlanner.LaunchMissionCoroutine(mission, craft));
+        spacecraftActive = false;
+
 
         disableOrEnableText(false);
         editSpacefraftData.enableText();
