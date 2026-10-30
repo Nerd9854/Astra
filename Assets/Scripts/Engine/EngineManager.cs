@@ -44,6 +44,25 @@ public class EngineManager : MonoBehaviour
     public int[] ignoreIds;
 
     private int numOfObjects;
+
+    public Button exportMissionD;
+    public Button spacecraftTab;
+    public Button export;
+    public TMPro.TextMeshProUGUI exportMissionDT;
+    public TMPro.TextMeshProUGUI spacecraftTabT;
+    public TMPro.TextMeshProUGUI exportT;
+    public void greyOut()
+    {
+        exportMissionD.interactable = false;
+        spacecraftTab.interactable = false;
+        export.interactable = false;
+        exportMissionDT.color = new Color32(128, 128, 128, 255);
+        spacecraftTabT.color = new Color32(128, 128, 128, 255);
+        exportT.color = new Color32(128, 128, 128, 255);
+        SpacecraftManager.editSpacefraftData.disableText();
+    }
+
+
     public void simulationStart()
     {
         materalLoader();
@@ -62,21 +81,9 @@ public class EngineManager : MonoBehaviour
         showWarning.dispalyNotif(1, "Stuck? Click the help tab for tutorials + more");
     }
 
-    public Button exportMissionD;
-    public Button spacecraftTab;
-    public Button export;
-    public TMPro.TextMeshProUGUI exportMissionDT;
-    public TMPro.TextMeshProUGUI spacecraftTabT;
-    public TMPro.TextMeshProUGUI exportT;
-    public void greyOut()
+    public void onlySimMain()
     {
-        exportMissionD.interactable = false;
-        spacecraftTab.interactable = false;
-        export.interactable = false;
-        exportMissionDT.color = new Color32(128, 128, 128, 255);
-        spacecraftTabT.color = new Color32(128, 128, 128, 255);
-        exportT.color = new Color32(128, 128, 128, 255);
-        SpacecraftManager.editSpacefraftData.disableText();
+
     }
 
     private void materalLoader() //this converts each materal(and prefab in the otehr one) into a array and a lookup diconary so i can say 'Earth' and it gives me earhts index

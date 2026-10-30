@@ -73,6 +73,7 @@ public class BodyManager : MonoBehaviour
             MeshRenderer renderer = allMeshRenderers[currIndex];
 
             double3 distance = PhysicsManager.fullObjData[currIndex].pos - worldpos;
+            //if (engineManager.certainObjects) distance -= (PhysicsManager.fullObjData[0].pos - worldpos);
 
             double3 gamepos = (distance) / scale;
             body.transform.position = (float3)(gamepos);
