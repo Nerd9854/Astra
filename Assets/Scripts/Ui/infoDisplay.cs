@@ -32,6 +32,8 @@ public class infoDisplay : MonoBehaviour
     // Start is called before the first frame update
     public void infoDisplayInit()
     {
+        if (engineManager.certainObjects) target = engineManager.startingObj;
+
         numOfLab = global.GetComponentsInChildren<Transform>(false).Length - 1;
         texts = new TextMeshProUGUI[numOfLab];
         updateTargetID();

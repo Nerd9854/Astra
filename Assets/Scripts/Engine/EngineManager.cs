@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class EngineManager : MonoBehaviour
 {
@@ -37,6 +39,7 @@ public class EngineManager : MonoBehaviour
     public double g = 0.000000000066743;
 
     public bool certainObjects = false;
+    public string startingObj;
 
     public int[] ignoreIds;
 
@@ -46,16 +49,34 @@ public class EngineManager : MonoBehaviour
         materalLoader();
         prebadLoader();
         DataExtractor.extractData(false, "");
+
         numOfObjects = SceneManager.simulationInit(); //returns the num of obejcts
         BodyManager.bodyManagerInit();
         PhysicsManager.physicsInit(numOfObjects);
-        SpacecraftManager.craftinint();
+        if(!certainObjects) SpacecraftManager.craftinint();
 
         UiManager.UiInit();
         exportData.dataExporterInit();
 
         showWarning.dispalyNotif(2, "Succcsessfully loaded, welcome to ASTRA!");
         showWarning.dispalyNotif(1, "Stuck? Click the help tab for tutorials + more");
+    }
+
+    public Button exportMissionD;
+    public Button spacecraftTab;
+    public Button export;
+    public TMPro.TextMeshProUGUI exportMissionDT;
+    public TMPro.TextMeshProUGUI spacecraftTabT;
+    public TMPro.TextMeshProUGUI exportT;
+    public void greyOut()
+    {
+        exportMissionD.interactable = false;
+        spacecraftTab.interactable = false;
+        export.interactable = false;
+        exportMissionDT.color = new Color32(128, 128, 128, 255);
+        spacecraftTabT.color = new Color32(128, 128, 128, 255);
+        exportT.color = new Color32(128, 128, 128, 255);
+        SpacecraftManager.editSpacefraftData.disableText();
     }
 
     private void materalLoader() //this converts each materal(and prefab in the otehr one) into a array and a lookup diconary so i can say 'Earth' and it gives me earhts index
@@ -78,7 +99,7 @@ public class EngineManager : MonoBehaviour
         BodyManager.updateBodys();
         cam.camUpdate();
         UiManager.UIUpdate();
-        SpacecraftManager.updateCraft();
+        if (!certainObjects) SpacecraftManager.updateCraft();
     }
 
     public void jumpDate()

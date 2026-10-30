@@ -38,13 +38,13 @@ public class SelectStartingObjects : MonoBehaviour
     public Toggle uranusCheckBox;
     public Toggle plutoCheckBox;
 
-    private List<string> earthMoons = new List<string> { "MOON" };
-    private List<string> marsMoons = new List<string> { "PHOBOS", "DEIMOS" };
-    private List<string> jupiterMoons = new List<string> { "IO", "EUROPA", "GANYMEDE", "CALLISTO", "AMALTHEA", "HIMALIA", "THEBE", "ADRASTEA", "METIS" };
-    private List<string> saturnMoons = new List<string> { "MIMAS", "ENCELADUS", "TETHYS", "DIONE", "RHEA", "TITAN", "HYPERION", "IAPETUS", "PHOEBE", "JANUS", "EPIMETHEUS", "HELENE", "ATLAS", "PROMETHEUS", "PANDORA" };
-    private List<string> uranusMoons = new List<string> { "ARIEL", "UMBRIEL", "TITANIA", "OBERON", "MIRANDA" };
-    private List<string> neptuneMoons = new List<string> { "TRITON", "NAIAD", "THALASSA", "DESPINA", "GALATEA", "LARISSA", "PROTEUS" };
-    private List<string> plutoMoons = new List<string> { "CHARON", "NIX", "HYDRA", "KERBEROS", "STYX" };
+    private List<string> earthMoons = new List<string> { "EARTH", "MOON" };
+    private List<string> marsMoons = new List<string> { "MARS", "PHOBOS", "DEIMOS" };
+    private List<string> jupiterMoons = new List<string> { "JUPITER", "IO", "EUROPA", "GANYMEDE", "CALLISTO", "AMALTHEA", "HIMALIA", "THEBE", "ADRASTEA", "METIS" };
+    private List<string> saturnMoons = new List<string> { "SATURN", "MIMAS", "ENCELADUS", "TETHYS", "DIONE", "RHEA", "TITAN", "HYPERION", "IAPETUS", "PHOEBE", "JANUS", "EPIMETHEUS", "HELENE", "ATLAS", "PROMETHEUS", "PANDORA" };
+    private List<string> uranusMoons = new List<string> { "URANUS", "ARIEL", "UMBRIEL", "TITANIA", "OBERON", "MIRANDA" };
+    private List<string> neptuneMoons = new List<string> { "NEPTUNE", "TRITON", "NAIAD", "THALASSA", "DESPINA", "GALATEA", "LARISSA", "PROTEUS" };
+    private List<string> plutoMoons = new List<string> { "PLUTO", "CHARON", "NIX", "HYDRA", "KERBEROS", "STYX" };
 
     public List<string> currentExports;
     public List<int> ignoreIds;
@@ -106,13 +106,14 @@ public class SelectStartingObjects : MonoBehaviour
         {
             foreach (string i in currentExports)
             {
-                Debug.Log(Array.IndexOf(allNames, i));
                 ignoreIds.Add(Array.IndexOf(allNames, i));
             }
 
             all.SetActive(false);
             SolarSim.SetActive(true);
             EngineManager.certainObjects = true;
+            EngineManager.startingObj = currentExports[0].ToUpper();
+            EngineManager.greyOut();
             EngineManager.ignoreIds = ignoreIds.ToArray();
             EngineManager.simulationStart();
         }
@@ -219,6 +220,8 @@ public class SelectStartingObjects : MonoBehaviour
     {
         systems = !checkToggles();
         toggleRest(checkToggles());
+
+        currentExports.Clear();
         if (value) currentExports = earthMoons;
     }
 
@@ -226,6 +229,8 @@ public class SelectStartingObjects : MonoBehaviour
     {
         systems = !checkToggles();
         toggleRest(checkToggles());
+
+        currentExports.Clear();
         if(value) currentExports = marsMoons;
     }
 
@@ -233,6 +238,8 @@ public class SelectStartingObjects : MonoBehaviour
     {
         systems = !checkToggles();
         toggleRest(checkToggles());
+
+        currentExports.Clear();
         if(value) currentExports = jupiterMoons;
     }
 
@@ -240,6 +247,8 @@ public class SelectStartingObjects : MonoBehaviour
     {
         systems = !checkToggles();
         toggleRest(checkToggles());
+
+        currentExports.Clear();
         if(value) currentExports = saturnMoons;
     }
 
@@ -247,6 +256,8 @@ public class SelectStartingObjects : MonoBehaviour
     {
         systems = !checkToggles();
         toggleRest(checkToggles());
+
+        currentExports.Clear();
         if(value) currentExports = neptuneMoons;
     }
 
@@ -254,6 +265,8 @@ public class SelectStartingObjects : MonoBehaviour
     {
         systems = !checkToggles();
         toggleRest(checkToggles());
+
+        currentExports.Clear();
         if(value) currentExports = uranusMoons;
     }
 
@@ -261,6 +274,8 @@ public class SelectStartingObjects : MonoBehaviour
     {
         systems = !checkToggles();
         toggleRest(checkToggles());
+
+        currentExports.Clear();
         if(value) currentExports = plutoMoons;
     }
 

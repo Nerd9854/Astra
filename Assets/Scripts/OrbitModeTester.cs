@@ -12,11 +12,11 @@ public class OrbitModeTester : MonoBehaviour
     public KeyCode activateKey = KeyCode.O;
     public GameObject orbittarget;
 
-    private void Start()
+    /*private void Start()
     {
         cameraController.target.transform = orbittarget.transform;
         cameraController.target.worldPosition = orbittarget.GetComponent<Body>().position;
-    }
+    }*/
 
     private void Update()
     {

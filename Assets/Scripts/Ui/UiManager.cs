@@ -27,10 +27,10 @@ public class UiManager : MonoBehaviour
         selectDateMan = selectDateObj.GetComponent<SelectDateMan>();
         BodyLabeler.labelInit();
         infoDisplay.infoDisplayInit();
-        spacecraftInfoDisplay.infoDisplayInit();
+        if(!EngineManager.certainObjects) spacecraftInfoDisplay.infoDisplayInit();
         if(!EngineManager.certainObjects) OrbitViewer.orbitInit();
         OrbtiViewerCamera.camInit();
-        missionPlannerUi.missionPlannerUiStart();
+        if (!EngineManager.certainObjects) missionPlannerUi.missionPlannerUiStart();
     }
 
     public int frameNum = 1;//skip the first one
@@ -40,7 +40,7 @@ public class UiManager : MonoBehaviour
         BodyLabeler.updateLables(frameNum);
         if (!EngineManager.certainObjects) OrbitViewer.orbitUpdate();
         infoDisplay.infoUpdate();
-        spacecraftInfoDisplay.infoUpdate();
+        if (!EngineManager.certainObjects) spacecraftInfoDisplay.infoUpdate();
         OrbtiViewerCamera.camUpdate();
         speedViewer.speedupdate();
 

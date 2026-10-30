@@ -25,10 +25,6 @@ public class DataExtractor : MonoBehaviour
         //convert the metadata file into a dictonary, i did not come up with the code on line 19, but i think i understnd the flow of data idk
         try { EngineManager.bodylookup = File.ReadLines((string)$"{dataFolderPath}\\{metaFileName}.txt").Select(line => line.Split(":")).ToDictionary(parts => parts[0], parts => int.Parse(parts[1])); }
         catch (Exception e1) { Debug.Log($"ERROR: file missing \nTrued to open {dataFolderPath}\\{metaFileName}.txt but got:\n{e1}"); }
-        foreach (var item in EngineManager.bodylookup)
-        {
-            Debug.Log(item.Key);
-        }
 
         try { EngineManager.namelookup = File.ReadLines((string)$"{dataFolderPath}\\{metaFileName}.txt").Select(line => line.Split(":")).ToDictionary(parts => int.Parse(parts[1]), parts => parts[0]); }
         catch (Exception e1) { Debug.Log($"ERROR: file missing \nTrued to open {dataFolderPath}\\{metaFileName}.txt but got:\n{e1}"); }
@@ -38,12 +34,15 @@ public class DataExtractor : MonoBehaviour
             Dictionary<string, int> temp1 = new Dictionary<string, int>();
             Dictionary<int, string> temp2 = new Dictionary<int, string>();
             string[] tempArray = EngineManager.bodylookup.Keys.ToArray();
+            int index = 0;
             foreach (var body in EngineManager.bodylookup)
             {
                 if (EngineManager.ignoreIds.Contains(Array.IndexOf(tempArray, body.Key)))
                 {
-                    temp1.Add(body.Key, EngineManager.bodylookup[body.Key]);
-                    temp2.Add(EngineManager.bodylookup[body.Key], body.Key);
+                    temp1.Add(body.Key, index);
+                    temp2.Add(index, body.Key);
+
+                    index++;
                 }
             }
             EngineManager.bodylookup = temp1;
@@ -68,6 +67,9 @@ public class DataExtractor : MonoBehaviour
             EngineManager.KepValuesMeta = convertTxtToStrArray($"{dataFolderPath}\\{KepMetaFileName}.txt");
             EngineManager.tiltValues = convertBinToVec4Array($"{dataFolderPath}\\{tiltFileName}.bin");
             EngineManager.rotationSpeedValues = convertBinToArray($"{dataFolderPath}\\{rotSpeedFileName}.bin");
+
+            if (EngineManager.certainObjects) normalise();
+            //EngineManager.simStart();
         }
         catch (Exception e2) { Debug.Log($"ERROR: file missing \nTrued to open {posfolderPath} but got:\n{e2}"); }
     }
@@ -80,7 +82,6 @@ public class DataExtractor : MonoBehaviour
         int index = 0;
         for (int i = 0; i <= (data.Length-24); i += 24) //doubles are stored as 8 bytes
         {
-            Debug.Log(EngineManager.certainObjects && !EngineManager.ignoreIds.Contains(i / 24));
             if (EngineManager.certainObjects && !EngineManager.ignoreIds.Contains(i / 24)) continue;
             double3 temp = new double3(0, 0, 0);
             for (int j = 0; j <=16; j += 8)
@@ -164,4 +165,16 @@ public class DataExtractor : MonoBehaviour
     }
 
     private string[] convertTxtToStrArray(string path) { return File.ReadAllLines(path); }
+
+    private void normalise()
+    {
+        double3 initPos = EngineManager.initalPos[0];
+        double3 initVel = EngineManager.initalVel[0];
+
+        for (int i = 0; i < EngineManager.initalVel.Length; i++)
+        {
+            EngineManager.initalPos[i] -= initPos;
+            EngineManager.initalVel[i] -= initVel;
+        }
+    }
 }

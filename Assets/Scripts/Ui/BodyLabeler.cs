@@ -44,11 +44,21 @@ public class BodyLabeler : MonoBehaviour
 
     public void labelInit()
     {
+        Debug.Log("yo1");
+        foreach (var item in EngineManager.bodylookup.Keys)
+        {
+            Debug.Log("yo2");
+            Debug.Log(item);
+        }
+
         int length = 0;
         foreach (string i in alwaysShow)
         {
-            if (EngineManager.bodylookup.Keys.ToArray().Contains(i))
+            Debug.Log("yo3");
+            Debug.Log(i.ToUpper());
+            if (EngineManager.bodylookup.Keys.ToArray().Contains(i.ToUpper()))
             {
+                Debug.Log("YO");
                 length++;
             }
         }
@@ -71,7 +81,7 @@ public class BodyLabeler : MonoBehaviour
         int indexNum = 0;
         foreach (string i in alwaysShow)
         {
-            if (EngineManager.bodylookup.Keys.ToArray().Contains(i))
+            if (EngineManager.bodylookup.Keys.ToArray().Contains(i.ToUpper()))
             {
                 int lookupIndex = EngineManager.bodylookup[i.ToUpper()];
 

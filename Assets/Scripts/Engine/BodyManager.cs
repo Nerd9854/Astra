@@ -3,6 +3,7 @@ using UnityEngine;
 
 public class BodyManager : MonoBehaviour
 {
+    public EngineManager engineManager;
     public CameraController cam;
     public SceneManager SceneManager;
     public PhysicsManager PhysicsManager;
@@ -101,7 +102,7 @@ public class BodyManager : MonoBehaviour
             }
         }
 
-        updateSunPos(sun.transform.position);
+        if(!engineManager.certainObjects) updateSunPos(sun.transform.position);
     }
 
     private Vector3 convertToFloat(double3 gamepos)
