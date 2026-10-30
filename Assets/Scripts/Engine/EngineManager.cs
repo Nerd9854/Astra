@@ -39,6 +39,7 @@ public class EngineManager : MonoBehaviour
     public double g = 0.000000000066743;
 
     public bool certainObjects = false;
+    public bool onlyMain = false;
     public string startingObj;
 
     public int[] ignoreIds;
@@ -83,7 +84,8 @@ public class EngineManager : MonoBehaviour
 
     public void onlySimMain()
     {
-
+        onlyMain = true;
+        simulationStart();
     }
 
     private void materalLoader() //this converts each materal(and prefab in the otehr one) into a array and a lookup diconary so i can say 'Earth' and it gives me earhts index

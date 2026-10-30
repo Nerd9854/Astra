@@ -44,21 +44,16 @@ public class BodyLabeler : MonoBehaviour
 
     public void labelInit()
     {
-        Debug.Log("yo1");
         foreach (var item in EngineManager.bodylookup.Keys)
         {
-            Debug.Log("yo2");
             Debug.Log(item);
         }
 
         int length = 0;
         foreach (string i in alwaysShow)
         {
-            Debug.Log("yo3");
-            Debug.Log(i.ToUpper());
             if (EngineManager.bodylookup.Keys.ToArray().Contains(i.ToUpper()))
             {
-                Debug.Log("YO");
                 length++;
             }
         }
@@ -122,6 +117,9 @@ public class BodyLabeler : MonoBehaviour
         
         spacecraftLC = spacecraftL.GetComponent<TMPro.TextMeshProUGUI>();
         spacecraftRC = spacecraftR.GetComponent<TMPro.TextMeshProUGUI>();
+
+        spacecraftL.transform.position = new Vector3(-100, -100, 0);
+        spacecraftR.transform.position = new Vector3(-100, -100, 0);
     }
 
     private void setupArray(int indexNum, int lookupIndex)

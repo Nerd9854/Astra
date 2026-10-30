@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Unity.Mathematics;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class DataExtractor : MonoBehaviour
@@ -18,6 +19,9 @@ public class DataExtractor : MonoBehaviour
     public string rotSpeedFileName;
 
     public speedViewer speedViewer;
+
+    private string[] mainPlanets = new string[] { "SUN", "MERCURY", "VENUS", "EARTH", "MOON", "MARS", "JUPITER", "SATURN", "URANUS", "NEPTUNE", "PLUTO", "1 CERES", "2 PALLAS", "4 VESTA", "10 HYGIEA" };
+    private List<int> rejectedIds = new List<int>();
 
     public void extractData(bool jumpDate, string dateToJump)
     {
@@ -49,7 +53,32 @@ public class DataExtractor : MonoBehaviour
             EngineManager.namelookup = temp2;
 
         }
-
+        else if (EngineManager.onlyMain)
+        {
+            Dictionary<string, int> temp1 = new Dictionary<string, int>();
+            Dictionary<int, string> temp2 = new Dictionary<int, string>();
+            string[] tempArray = EngineManager.bodylookup.Keys.ToArray();
+            int index = 0;
+            int overalIndex = 0;
+            foreach (var body in EngineManager.bodylookup)
+            {
+                if (mainPlanets.Contains(body.Key))
+                {
+                    temp1.Add(body.Key, index);
+                    temp2.Add(index, body.Key);
+                    index++;
+                }
+                else
+                {
+                    rejectedIds.Add(overalIndex);
+                }
+                rejectedIds.Add(71);
+                overalIndex++;
+            }
+            EngineManager.bodylookup = temp1;
+            EngineManager.namelookup = temp2;
+        }
+        
         //open the closest file to the current date
         string paddedMonth = $"{DateTime.Now.Month}".PadLeft(2, '0');
         string closestDate = jumpDate? dateToJump : $"01-{paddedMonth}-{DateTime.Now.Year}"; //kinda janky
@@ -77,12 +106,13 @@ public class DataExtractor : MonoBehaviour
     private double3[] convertBinToVec3Array(string path)
     {
         byte[] data = File.ReadAllBytes(path);
-        double3[] convertedArray = EngineManager.certainObjects ? new double3[EngineManager.ignoreIds.Length] : new double3[data.Length / 24];
+        double3[] convertedArray = EngineManager.certainObjects ? new double3[EngineManager.ignoreIds.Length] : EngineManager.onlyMain? new double3[mainPlanets.Length] : new double3[data.Length / 24];
 
         int index = 0;
         for (int i = 0; i <= (data.Length-24); i += 24) //doubles are stored as 8 bytes
         {
             if (EngineManager.certainObjects && !EngineManager.ignoreIds.Contains(i / 24)) continue;
+            if (EngineManager.onlyMain && rejectedIds.Contains(i / 24)) continue;
             double3 temp = new double3(0, 0, 0);
             for (int j = 0; j <=16; j += 8)
             {
@@ -91,6 +121,7 @@ public class DataExtractor : MonoBehaviour
                 temp[j/8] = convertedDouble;
             }
             temp = new double3(temp.y, temp.z, temp.x);
+
             convertedArray[index] = temp;
             index++;
         }
@@ -101,12 +132,13 @@ public class DataExtractor : MonoBehaviour
     private double[] convertBinToArray(string path)
     {
         byte[] data = File.ReadAllBytes(path);
-        double[] convertedArray = EngineManager.certainObjects ? new double[EngineManager.ignoreIds.Length] : new double[data.Length / 8];
+        double[] convertedArray = EngineManager.certainObjects ? new double[EngineManager.ignoreIds.Length] : EngineManager.onlyMain? new double[mainPlanets.Length] : new double[data.Length / 8];
 
         int index = 0;
         for (int i = 0; i <= (data.Length - 8); i += 8) //doubles are stored as 8 bytes
         {
             if (EngineManager.certainObjects && !EngineManager.ignoreIds.Contains(i / 8)) continue;
+            if (EngineManager.onlyMain && rejectedIds.Contains(i / 8)) continue;
 
             byte[] bytes = new byte[] { data[i + 0], data[i + 1], data[i + 2], data[i + 3], data[i + 4], data[i + 5], data[i + 6], data[i + 7] };
             double convertedDouble = BitConverter.ToDouble(bytes, 0);
@@ -119,12 +151,13 @@ public class DataExtractor : MonoBehaviour
     private double4[] convertBinToVec4Array(string path)
     {
         byte[] data = File.ReadAllBytes(path);
-        double4[] convertedArray = EngineManager.certainObjects ? new double4[EngineManager.ignoreIds.Length] : new double4[data.Length / 32];
+        double4[] convertedArray = EngineManager.certainObjects ? new double4[EngineManager.ignoreIds.Length] : EngineManager.onlyMain? new double4[mainPlanets.Length] : new double4[data.Length / 32];
 
         int index = 0;
         for (int i = 0; i <= (data.Length - 32); i += 32) //doubles are stored as 8 bytes
         {
             if (EngineManager.certainObjects && !EngineManager.ignoreIds.Contains(i / 32)) continue;
+            if (EngineManager.onlyMain && rejectedIds.Contains(i / 32)) continue;
 
             double4 temp = new double4(0, 0, 0, 0);
             for (int j = 0; j <= 24; j += 8)
@@ -143,12 +176,13 @@ public class DataExtractor : MonoBehaviour
     private double2[] convertBinToVec2Array(string path)
     {
         byte[] data = File.ReadAllBytes(path);
-        double2[] convertedArray = EngineManager.certainObjects ? new double2[EngineManager.ignoreIds.Length] : new double2[data.Length / 16];
+        double2[] convertedArray = EngineManager.certainObjects ? new double2[EngineManager.ignoreIds.Length] : EngineManager.onlyMain? new double2[mainPlanets.Length] : new double2[data.Length / 16];
 
         int index = 0;
         for (int i = 0; i <= (data.Length - 16); i += 16) //doubles are stored as 8 bytes
         {
             if (EngineManager.certainObjects && !EngineManager.ignoreIds.Contains(i / 16)) continue;
+            if (EngineManager.onlyMain && rejectedIds.Contains(i / 16)) continue;
 
             double2 temp = new double2(0, 0);
             for (int j = 0; j <= 8; j += 8)
