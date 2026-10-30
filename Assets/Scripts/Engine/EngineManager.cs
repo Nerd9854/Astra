@@ -36,6 +36,10 @@ public class EngineManager : MonoBehaviour
     public double[] rotationSpeedValues;
     public double g = 0.000000000066743;
 
+    public bool certainObjects = false;
+
+    public int[] ignoreIds;
+
     private int numOfObjects;
     public void simulationStart()
     {

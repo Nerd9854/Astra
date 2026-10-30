@@ -44,8 +44,16 @@ public class BodyLabeler : MonoBehaviour
 
     public void labelInit()
     {
+        int length = 0;
+        foreach (string i in alwaysShow)
+        {
+            if (EngineManager.bodylookup.Keys.ToArray().Contains(i))
+            {
+                length++;
+            }
+        }
+
         camCont = cam.GetComponent<CameraController>();
-        int length = alwaysShow.Length;
         labels = new GameObject[length];
         rings = new GameObject[length];
         eLabels = new GameObject[extraLabels];
@@ -63,12 +71,15 @@ public class BodyLabeler : MonoBehaviour
         int indexNum = 0;
         foreach (string i in alwaysShow)
         {
-            int lookupIndex = EngineManager.bodylookup[i.ToUpper()];
+            if (EngineManager.bodylookup.Keys.ToArray().Contains(i))
+            {
+                int lookupIndex = EngineManager.bodylookup[i.ToUpper()];
 
-            addLabel(i, indexNum, lookupIndex);
-            addRing(i, indexNum, lookupIndex);
-            setupArray(indexNum, lookupIndex);
-            indexNum++;
+                addLabel(i, indexNum, lookupIndex);
+                addRing(i, indexNum, lookupIndex);
+                setupArray(indexNum, lookupIndex);
+                indexNum++;
+            }
         }
 
         for (int i = 0; i < extraLabels; i++)

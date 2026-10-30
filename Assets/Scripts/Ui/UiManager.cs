@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class UiManager : MonoBehaviour
 {
+    public EngineManager EngineManager;
     public BodyLabeler BodyLabeler;
     public OrbitViewer OrbitViewer;
     public OrbtiViewerCamera OrbtiViewerCamera;
@@ -27,7 +28,7 @@ public class UiManager : MonoBehaviour
         BodyLabeler.labelInit();
         infoDisplay.infoDisplayInit();
         spacecraftInfoDisplay.infoDisplayInit();
-        OrbitViewer.orbitInit();
+        if(!EngineManager.certainObjects) OrbitViewer.orbitInit();
         OrbtiViewerCamera.camInit();
         missionPlannerUi.missionPlannerUiStart();
     }
@@ -37,7 +38,7 @@ public class UiManager : MonoBehaviour
     public void UIUpdate()
     {
         BodyLabeler.updateLables(frameNum);
-        OrbitViewer.orbitUpdate();
+        if (!EngineManager.certainObjects) OrbitViewer.orbitUpdate();
         infoDisplay.infoUpdate();
         spacecraftInfoDisplay.infoUpdate();
         OrbtiViewerCamera.camUpdate();
