@@ -98,6 +98,7 @@ Material:
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
+    - _Id: 1
     - _LineWidth: 1
     - _LodBlend: 0
     - _MajorThick: 1

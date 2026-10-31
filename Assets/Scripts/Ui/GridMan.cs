@@ -12,14 +12,14 @@ public class GridMan : MonoBehaviour
     public double camScale;
     public double modthing;
     public double minV = 1000;
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
+    public double distThresh;
+
+    public GameObject miniGrid;
 
     private static readonly int camPosID = Shader.PropertyToID("_CameraPosition");
     private static readonly int gridSizeID = Shader.PropertyToID("_GridSize");
+    private static readonly int hideIndexID = Shader.PropertyToID("_HideIndex");
+
     void Update()
     {
         double3 worldpos = cam.worldPos;
@@ -30,9 +30,14 @@ public class GridMan : MonoBehaviour
 
 
         double3 distance = 0 - worldpos;
-
+        
         double3 gamepos = (distance) / sceneManager.scale;
         double3 modPos = new double3(gamepos.x % modthing, gamepos.y, gamepos.z % modthing);
+
+
+        Shader.SetGlobalFloat(hideIndexID, (distThresh < math.length(modPos)) ? 1f : 0f);
+        Debug.Log((distThresh < math.length(modPos)));
+
         grid.transform.position = (float3)(modPos);
     }
 }

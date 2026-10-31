@@ -157,9 +157,9 @@ public class infoDisplay : MonoBehaviour
 
     public void infoUpdate()
     {
-        if (globalSpacecraftInfo) return;
         physicsObject data = physicsManager.fullObjData[targetID];
         updatePosVelAcc(data.pos, data.vel, data.acc);
+        if (globalSpacecraftInfo) return;
     }
 
     public void initMenu()

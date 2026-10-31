@@ -104,6 +104,8 @@ public class CameraController : MonoBehaviour
     // where camUpdate() wasn't called.
     private int lastFinalizeFrame = -1;
 
+    public double maxDistanceFromOrigin = 1e12;
+
 
     void Awake()
     {
@@ -178,7 +180,10 @@ public class CameraController : MonoBehaviour
             worldPos += ToDouble3(FrameDeltaPosition) * kmPerUnit;
         }
 
-        if (follow) SyncTargetTransform();
+        ClampCameraDistance();
+
+        if (follow)
+            SyncTargetTransform();
 
         transform.position = anchorPosition;
     }
@@ -266,6 +271,16 @@ public class CameraController : MonoBehaviour
         orbitDirection = direction.normalized;
 
         movingToOrbit = true;
+    }
+
+    private void ClampCameraDistance()
+    {
+        double distanceFromOrigin = math.length(worldPos);
+
+        if (distanceFromOrigin > maxDistanceFromOrigin)
+        {
+            worldPos = math.normalize(worldPos) * maxDistanceFromOrigin;
+        }
     }
 
     private void MoveToOrbit()
