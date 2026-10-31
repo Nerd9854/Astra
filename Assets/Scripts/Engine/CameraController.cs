@@ -91,6 +91,10 @@ public class CameraController : MonoBehaviour
 
     public PhysicsManager.physicsObject orbitTar;
 
+    // Where the pivot sat (camera space) when OUR last frame finished.
+    private Vector3 pivotLocalPos;
+    private bool hasPivotLocalPos;
+
     // Deliberate pan / double-click shifts of the pivot, kept as an offset (km) FROM
     // target.worldPosition instead of being written into it - so they survive your
     // planet script overwriting target.worldPosition every frame.
@@ -133,38 +137,29 @@ public class CameraController : MonoBehaviour
     // If objects get placed BEFORE camUpdate() runs, a moving orbit target will look one frame behind.
     public void camUpdate()
     {
-        // Your objects were re-placed around the camera after last frame's camUpdate(), but
-        // Unity only pushes moved transforms into the physics world on a physics step (or when
-        // told to). Without this, every raycast / overlap test below measures against where the
-        // colliders WERE - which is what made things go wrong around moving planets.
+        // Decide once, up front, so the frame you exit orbit still follows the target.
+        bool follow = ShouldFollowTarget();
+
+        // Undo whatever the placement script did to the pivot transform since last frame.
+        if (follow && hasPivotLocalPos)
+            target.transform.position = pivotLocalPos;
+
         Physics.SyncTransforms();
 
-        if (movingToOrbit)
-        {
-            MoveToOrbit();
-        }
-        else if (focusOrbit)
-        {
-            HandleFocusMouseInput();
-        }
-        else
-        {
-            NormalUpdate();
-        }
+        if (movingToOrbit) MoveToOrbit();
+        else if (focusOrbit) HandleFocusMouseInput();
+        else NormalUpdate();
 
-        FinalizeFrame();
+        FinalizeFrame(follow);
     }
 
-    // Fallback only - does nothing on frames where camUpdate() already ran.
     private void LateUpdate()
     {
         if (lastFinalizeFrame != Time.frameCount)
-        {
-            FinalizeFrame();
-        }
+            FinalizeFrame(ShouldFollowTarget());
     }
 
-    private void FinalizeFrame()
+    private void FinalizeFrame(bool follow)
     {
         lastFinalizeFrame = Time.frameCount;
 
@@ -172,29 +167,19 @@ public class CameraController : MonoBehaviour
         FrameDeltaRotation = transform.rotation * Quaternion.Inverse(lastRawRotation);
         lastRawRotation = transform.rotation;
 
-        if (ShouldFollowTarget())
+        if (follow)
         {
             updateWorldPos(target);
-            // Orbiting something that may be moving on its own. Instead of adding up
-            // deltas, pin the camera to: (target's true position RIGHT NOW) + (where the
-            // camera sits relative to the pivot after this frame's orbit / zoom / pan).
-            // target.transform.position still holds last frame's pivot position here, so
-            // this keeps the exact same offset while the target itself moves.
-            // (Both positions are in the same frame - anchorPosition included - so this
-            // is also correct when anchorPosition isn't zero.)
             Vector3 offsetFromPivot = transform.position - target.transform.position;
             worldPos = target.worldPosition + pivotOffsetKm + ToDouble3(offsetFromPivot) * kmPerUnit;
         }
         else
         {
-            // Free flight: fold this frame's small, precise delta into the big, precise total (real km).
             worldPos += ToDouble3(FrameDeltaPosition) * kmPerUnit;
         }
 
-        SyncTargetTransform();
+        if (follow) SyncTargetTransform();
 
-        // The camera never repositions anything else in the scene - worldPos
-        // above is all any other script needs to place itself relative to the camera.
         transform.position = anchorPosition;
     }
 
@@ -215,9 +200,11 @@ public class CameraController : MonoBehaviour
     {
         if (target == null || target.transform == null || !target.useWorldPosition) return;
         updateWorldPos(target);
-        // Pivot expressed relative to the camera, which sits at anchorPosition.
         double3 relativeUnits = (target.worldPosition + pivotOffsetKm - worldPos) / kmPerUnit;
         target.transform.position = anchorPosition + new Vector3((float)relativeUnits.x, (float)relativeUnits.y, (float)relativeUnits.z);
+
+        pivotLocalPos = target.transform.position;   // NEW
+        hasPivotLocalPos = true;                     // NEW
     }
 
     // Kept so existing calls still compile. Call it from whatever script assigns a
@@ -257,6 +244,7 @@ public class CameraController : MonoBehaviour
 
     public void EnterOrbitMode()
     {
+        target.useWorldPosition = true;
         transitioningToOrbit = true;
         focusOrbit = false;
 

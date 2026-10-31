@@ -16,6 +16,7 @@ public class UiManager : MonoBehaviour
     public GameObject taskbarCanvas;
     public speedViewer speedViewer;
     public missionPlannerUi missionPlannerUi;
+    public jumpBodys jumpBodys;
 
     public ShowHideDropDown tab1;
     public ShowHideDropDown tab2;
@@ -31,6 +32,7 @@ public class UiManager : MonoBehaviour
         if(!EngineManager.certainObjects) OrbitViewer.orbitInit();
         OrbtiViewerCamera.camInit();
         if (!EngineManager.certainObjects) missionPlannerUi.missionPlannerUiStart();
+        jumpBodys.jumpBodysInit();
     }
 
     public int frameNum = 1;//skip the first one
