@@ -28,8 +28,6 @@ public class SceneManager : MonoBehaviour
     {
         foreach (string name in mainEngineManager.bodylookup.Keys)
         {
-            Debug.Log(name);
-            Debug.Log(mainEngineManager.bodylookup[name]);
             bodyLoader(name, "Planet", mainEngineManager.bodylookup[name]);
         }
         return(currID - 1);

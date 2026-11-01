@@ -33,6 +33,18 @@ public class SpacecraftManager : MonoBehaviour
 
     public SpacecraftConfig craft;
 
+    [Header("Mission debugging")]
+    [Tooltip("Fly a mission even when the planner says the ship can't afford it. Handy for checking the physics side on its own.")]
+    public bool launchEvenIfInfeasible = false;
+    public string testOrigin = "EARTH";
+    public string testTarget = "MARS";
+
+    // how close to the launch epoch counts as "there", the integrator lands on stopTime to within float error
+    private const double TimeTolerance = 1e-3;
+
+    // true from the moment a mission is handed to flyMission until it has finished (or bailed out)
+    private bool missionRunning = false;
+
     public void updateCraft()
     {
         Vector3 sunPos = sunTransform.position;
@@ -54,29 +66,83 @@ public class SpacecraftManager : MonoBehaviour
 
     private void testStart()
     {
+        // The old test ship (Isp 320, 1200 kg fuel) only carries about 3.6 km/s of dV, but the planner bills
+        // the launch from rest next to the planet (~11.3 km/s) plus the arrival match, ~14 km/s for Earth -> Mars,
+        // so it could never be feasible and every launch stopped at "Mission infeasible".
+        // This one is an ion-class ship (Isp 3000) which does fit, with a few hundred kg to spare.
+        // The search window is also long enough to contain a Mars launch window (they come every ~26 months).
         craft = new SpacecraftConfig
         {
             DryMass = 500,
             FuelMass = 1200,
             PayloadMass = 50,
-            Isp = 320,
+            Isp = 3000,
             Thrust = 500,
+            EnginePreset = EnginePreset.Ion,
             ObjectiveWeight = 0.3,
             ArrivalMode = ArrivalMode.OrbitInsertion,
             SearchWindowStart = physicsManager.t,
-            SearchWindowEnd = physicsManager.t + 365 * 86400,
+            SearchWindowEnd = physicsManager.t + 800 * 86400,
             MaxMissionDuration = 3 * 365 * 86400
         };
+    }
 
-        MissionResult h = new MissionResult();
+    // Right click this component in the inspector (play mode) -> "Run test mission" to plan and fly
+    // testOrigin -> testTarget without going through the UI. If this works and the UI doesn't, the
+    // problem is in whatever calls the planner, not in the planner or the physics.
+    [ContextMenu("Run test mission")]
+    public void RunTestMission()
+    {
+        if (craft == null) testStart();
+        PlanAndFly(
+            new[] { testOrigin, testTarget },
+            new[] { NodeType.Start, NodeType.End },
+            tofMinDays: 100, tofMaxDaysPerLeg: 500,
+            pop: 30, gens: 100, restarts: 4,
+            searchWindowDays: 800);
+    }
 
-        //StartCoroutine(flyMission(h));//craft));
+    // The whole chain in one call: plan -> check -> fast-forward to launch -> spawn + burn.
+    // Anything that used to call missionPlanner.PlanMission and then forgot to hand the result to
+    // flyMission (the old code never did) should call this instead.
+    // searchWindowDays > 0 resets the search window to [now, now + days], 0 leaves craft's window alone
+    public void PlanAndFly(
+        string[] bodies, NodeType[] types,
+        double tofMinDays = 30, double tofMaxDaysPerLeg = 1500,
+        int pop = 0, int gens = 300, int restarts = 8,
+        double searchWindowDays = 0)
+    {
+        if (missionRunning)
+        {
+            showWarning.dispalyNotif(0, "A mission is already running");
+            return;
+        }
+        if (craft == null)
+        {
+            Debug.LogError("[Mission] No SpacecraftConfig, craft is null.");
+            showWarning.dispalyNotif(0, "No spacecraft configured");
+            return;
+        }
+
+        if (searchWindowDays > 0)
+        {
+            craft.SearchWindowStart = physicsManager.t;
+            craft.SearchWindowEnd = physicsManager.t + searchWindowDays * 86400;
+        }
+
+        // note: this blocks the main thread until the optimizer is done, so the game hitches for a bit
+        MissionResult result = missionPlanner.PlanMission(bodies, types, craft, tofMinDays, tofMaxDaysPerLeg, pop, gens, restarts);
+
+        // null means the planner already showed its own warning
+        if (result == null) return;
+
+        flyMission(result);
     }
 
     public void disableOrEnableText(bool enable) //holy jank
     {
         selectDate.interactable = enable;
-        selectDateText.color = enable? new Color32(255, 255, 255, 255) : new Color32(128, 128, 128, 255);
+        selectDateText.color = enable ? new Color32(255, 255, 255, 255) : new Color32(128, 128, 128, 255);
 
         if (!enable)
         {
@@ -85,94 +151,105 @@ public class SpacecraftManager : MonoBehaviour
         }
     }
 
+    // hands an already planned mission to the physics side, plan it with missionPlanner.PlanMission
+    // (or just use PlanAndFly)
     public void flyMission(MissionResult mission)
     {
-        StartCoroutine(startMission(mission));
+        if (missionRunning)
+        {
+            showWarning.dispalyNotif(0, "A mission is already running");
+            return;
+        }
+        StartCoroutine(runMission(mission));
+    }
+
+    private IEnumerator runMission(MissionResult mission)
+    {
+        missionRunning = true;
+        yield return StartCoroutine(startMission(mission));
+        missionRunning = false;
     }
 
     private IEnumerator startMission(MissionResult mission)
     {
-        Debug.Log("yo2");
-        // --- Parity check: same 2-node Earth->Mars case your old SolveSingleLeg test ran ---
-        /*showWarning.dispalyNotif(1, "Solving Earth->Mars (parity check)");
-        var directResult = missionPlanner.PlanMission(
-            new[] { "EARTH", "MARS" },
-            new[] { NodeType.Start, NodeType.End },
-            config,
-            tofMinDays: 100, tofMaxDaysPerLeg: 400,
-            pop: 30, gens: 100);
-
-        Debug.Log($"[Test] Earth->Mars: t0={directResult.Nodes[0].Epoch / 86400:F1}d, " +
-                  $"TOF={directResult.TotalTOF / 86400:F1}d, dV={directResult.TotalDeltaV:F4}, " +
-                  $"feasible={directResult.Feasible}, margin={directResult.MassMargin:F1}kg");
-        // Should land in the same ballpark as your original SolveSingleLeg test - if the dV is wildly
-        // different, that's a sign something in the port (units, node-cost wiring) needs a second look
-        // before trusting the multi-leg case below.
-
-        yield return null;*/
-
-        // --- Multi-leg check: Earth -> Venus flyby -> Mars, exercises the chain + periapsis code ---
-
-        /*showWarning.dispalyNotif(1, "Solving Earth->Venus->Mars (flyby)");
-        var mission = missionPlanner.PlanMission(
-            new[] { "EARTH", "VENUS", "MARS" },
-            new[] { NodeType.Start, NodeType.Flyby, NodeType.End },
-            craft,
-            tofMinDays: 60, tofMaxDaysPerLeg: 800,
-            pop: 40, gens: 150);
-        */
-
-        var legTofs = new List<string>();
-        foreach (var leg in mission.Legs) legTofs.Add((leg.TOF / 86400).ToString("F1"));
-
-        /*Debug.Log($"[Test] Earth->Venus->Mars: t0={flybyResult.Nodes[0].Epoch / 86400:F1}d, " +
-                  $"leg TOFs={string.Join("/", legTofs)}d, dV={flybyResult.TotalDeltaV:F4}, " +
-                  $"feasible={flybyResult.Feasible}, margin={flybyResult.MassMargin:F1}kg");*/
-
-        if (!mission.Feasible)
+        // PlanMission returns null after showing its own warning when the inputs or search were bad, and a
+        // bare `new MissionResult()` has no nodes or legs, there is nothing to fly in either case
+        if (mission == null || mission.Nodes == null || mission.Nodes.Count < 2 || mission.Legs == null || mission.Legs.Count == 0)
         {
-            showWarning.dispalyNotif(2, "Mission infeasible");
+            Debug.LogWarning("[Mission] flyMission was given an empty mission, was PlanMission run and its result passed in?");
+            showWarning.dispalyNotif(0, "No planned mission to launch");
             yield break;
         }
 
-        Debug.Log("yo3");
-        speedViewer.overide = true;
-        double launchEpoch = mission.Nodes[0].Epoch;
-
-        showWarning.dispalyNotif(2, $"Found suitable mission, launching in {(launchEpoch - physicsManager.t) / 86400:F1} days");
-
-        //showWarning.dispalyNotif(1, $"Simulating {(launchEpoch - physicsManager.t) / 86400:F1} days\nCalculating Estimate");
-        //StartCoroutine(estTime(launchEpoch - physicsManager.t));
-
-        physicsManager.maxH = 99999999999999;
-
-        disableOrEnableText(false);
-        editSpacefraftData.disableText();
-        StartCoroutine(simulatingTimeUI.showProgress(launchEpoch, mission.TotalTOF, physicsManager.t, true));
-
-        while (physicsManager.t < launchEpoch)
+        if (!mission.Feasible)
         {
-            double timeLeft = launchEpoch - physicsManager.t;
-            if (timeLeft < physicsManager.maxH)
-                physicsManager.maxH = timeLeft;
-            yield return null;
-            Debug.Log("Looping");
-            if(timeLeft < 1)
+            string why = string.IsNullOrEmpty(mission.FailureReason) ? "unknown reason" : mission.FailureReason;
+            Debug.LogWarning($"[Mission] Infeasible: {why}");
+
+            if (mission.MassMargin < 0)
             {
-                break;
+                showWarning.dispalyNotif(2, $"Mission infeasible: needs {mission.TotalDeltaV:F0} m/s, ship has {mission.AvailableDeltaV:F0} m/s");
             }
+            else
+            {
+                showWarning.dispalyNotif(2, "Mission infeasible (see console for why)");
+            }
+
+            if (!launchEvenIfInfeasible) yield break;
+            Debug.LogWarning("[Mission] launchEvenIfInfeasible is on, flying it anyway.");
         }
-        Debug.Log("yo4");
 
-        speedViewer.overide = false;
+        double launchEpoch = mission.Nodes[0].Epoch;
+        double daysToLaunch = (launchEpoch - physicsManager.t) / 86400;
+
+        Debug.Log($"[Mission] Going ahead: launch in {daysToLaunch:F1} days, dV = {mission.TotalDeltaV:F0} m/s, TOF = {mission.TotalTOF / 86400:F1} days");
+        showWarning.dispalyNotif(2, $"Found suitable mission, launching in {daysToLaunch:F1} days");
+
+        // the fast-forward only advances if the sim is actually running
+        if (physicsManager.paused)
+        {
+            Debug.LogWarning("[Mission] Physics was paused, resuming it so the mission can run.");
+            physicsManager.paused = false;
+        }
+
+        // fast-forward to the launch, the integrator lands exactly on stopTime by itself so there is
+        // no need to shrink maxH as the epoch approaches, and it gets put back afterwards
+        if (launchEpoch - physicsManager.t > TimeTolerance)
+        {
+            speedViewer.overide = true;
+
+            double oldMaxH = physicsManager.maxH;
+            physicsManager.maxH = 99999999999999;
+
+            disableOrEnableText(false);
+            editSpacefraftData.disableText();
+            StartCoroutine(simulatingTimeUI.showProgress(launchEpoch, mission.TotalTOF, physicsManager.t, true));
+
+            physicsManager.stopTime = launchEpoch;
+            while (physicsManager.t < launchEpoch - TimeTolerance)
+            {
+                yield return null;
+            }
+            physicsManager.stopTime = double.MaxValue;
+            physicsManager.maxH = oldMaxH;
+
+            speedViewer.overide = false;
+        }
+        else
+        {
+            // already at the launch epoch, the buttons still need to be locked for the rest of the mission
+            disableOrEnableText(false);
+            editSpacefraftData.disableText();
+        }
+
         spacecraftActive = true;
-        yield return StartCoroutine(missionPlanner.LaunchMissionCoroutine(mission, craft));
-        spacecraftActive = false;
-
-
-        disableOrEnableText(false);
-        editSpacefraftData.enableText();
         showWarning.dispalyNotif(2, "Launched mission");
+        yield return StartCoroutine(missionPlanner.LaunchMissionCoroutine(mission, craft));
+        //spacecraftActive = false;
+
+        // was disableOrEnableText(false), which left the date button greyed out after the mission finished
+        disableOrEnableText(true);
+        editSpacefraftData.enableText();
     }
 
     public IEnumerator estTime(double estTOF)
@@ -194,6 +271,12 @@ public class SpacecraftManager : MonoBehaviour
 
     public string convertTime(double estTime)
     {
+        // the estimate is TOF / sim speed, so a stalled sim gives Infinity/NaN and TimeSpan.FromSeconds throws
+        if (double.IsNaN(estTime) || double.IsInfinity(estTime) || estTime < 0 || estTime > TimeSpan.MaxValue.TotalSeconds)
+        {
+            return "calculating...";
+        }
+
         TimeSpan timeSpan = TimeSpan.FromSeconds(estTime); //fancyy
 
         //theres prolly a better way but theres 6 days left so idc   im in my toby fox arc

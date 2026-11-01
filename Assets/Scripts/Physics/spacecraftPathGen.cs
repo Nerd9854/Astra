@@ -1,12 +1,8 @@
-using MathNet.Numerics;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
-using Unity.VisualScripting;
-using Unity.VisualScripting.Antlr3.Runtime.Tree;
 using UnityEngine;
-using static UnityEditor.PlayerSettings;
 
 public class spacecraftPathGen : MonoBehaviour
 {
@@ -22,242 +18,512 @@ public class spacecraftPathGen : MonoBehaviour
         sunObj = physicsManager.fullObjData[engineManager.bodylookup["SUN"]];
     }
 
-    /*
-    public double getVel(string startBody, string endBody, double t0, double tof)
+    public static double Dot(double3 v1, double3 v2)
     {
-        PhysicsManager.physicsObject endBodyObj = physicsManager.fullObjData[engineManager.bodylookup[endBody]];
-        PhysicsManager.physicsObject startBodyObj = physicsManager.fullObjData[engineManager.bodylookup[startBody]];
-
-        OrbitViewer.KeplerianElements startBodyKep = orbitViewer.calcKep(startBodyObj.pos, startBodyObj.vel, startBodyObj.mass, sunObj.mass);
-        OrbitViewer.KeplerianElements endBodyKep = orbitViewer.calcKep(endBodyObj.pos, endBodyObj.vel, endBodyObj.mass, sunObj.mass);
-
-        double mu = sunObj.mass;
-        double3 initPos = orbitViewer.getPositionAtTime(startBodyKep, t0) - sunObj.pos;
-        double3 endPos = orbitViewer.getPositionAtTime(endBodyKep, t0 + tof) - sunObj.pos;
-
-        double3 vBody1 = orbitViewer.getVelocityAtTime(startBodyKep, t0);
-
-        try
-        {
-            var (v1, v2) = SolveLambert(initPos, endPos, tof, mu, "prograde");
-            return math.length(v1 - vBody1);
-        }
-        catch (Exception ex)
-        {
-            showWarning.dispalyNotif(0, $"Error solving Lambert's problem: {ex.Message}");
-        }
-        return 0;
+        return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
     }
 
-    
-    public (double bestT0, double bestTOF, double bestCost) SolveSingleLeg(string startBody, string endBody, double t0Min, double t0Max, double tofMin, double tofMax, int pop = 30, int gens = 100)
+    public static double3 Cross(double3 v1, double3 v2)
     {
-        var rng = new System.Random();
-        var t0s = new double[pop];
-        var tofs = new double[pop];
-        var costs = new double[pop];
+        return new double3(
+            v1.y * v2.z - v1.z * v2.y,
+            v1.z * v2.x - v1.x * v2.z,
+            v1.x * v2.y - v1.y * v2.x
+        );
+    }
 
-        for (int i = 0; i < pop; i++)
-        {
-            t0s[i] = t0Min + rng.NextDouble() * (t0Max - t0Min);
-            tofs[i] = tofMin + rng.NextDouble() * (tofMax - tofMin);
-            costs[i] = getVel(startBody, endBody, t0s[i], tofs[i]);
-        }
+    private readonly double3 impossibleAnswer =
+        new double3(math.NAN, math.NAN, math.NAN);
 
-        for (int g = 0; g < gens; g++)
-            for (int i = 0; i < pop; i++)
-            {
-                int a, b, c;
-                do { a = rng.Next(pop); } while (a == i);
-                do { b = rng.Next(pop); } while (b == i || b == a);
-                do { c = rng.Next(pop); } while (c == i || c == a || c == b);
+    private static bool IsFinite(double value)
+    {
+        return !double.IsNaN(value) && !double.IsInfinity(value);
+    }
 
-                double F = 0.8;
-                double trialT0 = math.clamp(t0s[a] + F * (t0s[b] - t0s[c]), t0Min, t0Max);
-                double trialTOF = math.clamp(tofs[a] + F * (tofs[b] - tofs[c]), tofMin, tofMax);
-                double trialCost = getVel(startBody, endBody, trialT0, trialTOF);
-
-                if (trialCost < costs[i])
-                {
-                    t0s[i] = trialT0; tofs[i] = trialTOF; costs[i] = trialCost;
-                }
-            }
-
-        int best = 0;
-        for (int i = 1; i < pop; i++) if (costs[i] < costs[best]) best = i;
-        return (t0s[best], tofs[best], costs[best]);
+    private static bool IsValidVector(double3 v)
+    {
+        return IsFinite(v.x) && IsFinite(v.y) && IsFinite(v.z);
     }
 
 
-    public void LaunchMission(string startBody, string endBody, double t0, double tof)
-    {
-        var sunObj = physicsManager.fullObjData[engineManager.bodylookup["SUN"]];
-        var startObj = physicsManager.fullObjData[engineManager.bodylookup[startBody]];
-        var startKep = orbitViewer.calcKep(startObj.pos, startObj.vel, startObj.mass, sunObj.mass);
-
-        double3 spawnPos = orbitViewer.getPositionAtTime(startKep, t0);
-        double3 spawnVel = orbitViewer.getVelocityAtTime(startKep, t0);
-
-        var craft = physicsManager.addSpacecraft(spawnPos, spawnVel, 0.0);
-
-        double3 r1 = spawnPos - sunObj.pos;
-        double3 r2 = orbitViewer.getPositionAtTime(orbitViewer.calcKep(
-            physicsManager.fullObjData[engineManager.bodylookup[endBody]].pos,
-            physicsManager.fullObjData[engineManager.bodylookup[endBody]].vel,
-            physicsManager.fullObjData[engineManager.bodylookup[endBody]].mass,
-            sunObj.mass), t0 + tof) - sunObj.pos;
-
-        var (v1, _) = spacecraftPathGen.SolveLambert(r1, r2, tof, sunObj.mass, "prograde");
-
-        physicsManager.commandBurn(craft, v1, 60.0);
-    }
-
-    */
-    public static double Dot(double3 v1, double3 v2) { return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z; }
-
-    public static double3 Cross(double3 v1, double3 v2) { return new double3(v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x); }
-
+    // ------------------------------------------------------------
+    // STUMPFF FUNCTIONS
+    // ------------------------------------------------------------
 
     public static double StumpffC(double z)
     {
-        if (z > 1e-5)
+        if (!IsFinite(z))
+            return double.NaN;
+
+        if (Math.Abs(z) < 1e-3)
         {
-            return (1.0 - Math.Cos(Math.Sqrt(z))) / z;
+            return 0.5 - z / 24.0
+                + (z * z) / 720.0
+                - (z * z * z) / 40320.0
+                + Math.Pow(z, 4) / 3628800.0;
         }
-        else if (z < -1e-5)
+
+        if (z > 0.0)
         {
-            return (Math.Cosh(Math.Sqrt(-z)) - 1.0) / (-z);
+            double sqrtZ = Math.Sqrt(z);
+            double sinHalf = Math.Sin(sqrtZ * 0.5);
+
+            return 2.0 * sinHalf * sinHalf / z;
         }
-        else
-        {
-            return 1.0 / 2.0 - z / 24.0 + (z * z) / 720.0;
-        }
+
+        double sqrtNz = Math.Sqrt(-z);
+
+        if (sqrtNz > 700.0)
+            return double.PositiveInfinity;
+
+        return (Math.Cosh(sqrtNz) - 1.0) / (-z);
     }
+
 
     public static double StumpffS(double z)
     {
-        if (z > 1e-5)
+        if (!IsFinite(z))
+            return double.NaN;
+
+        if (Math.Abs(z) < 1e-3)
+        {
+            return 1.0 / 6.0 - z / 120.0
+                + (z * z) / 5040.0
+                - (z * z * z) / 362880.0
+                + Math.Pow(z, 4) / 39916800.0;
+        }
+
+        if (z > 0.0)
         {
             double sqrtZ = Math.Sqrt(z);
-            return (sqrtZ - Math.Sin(sqrtZ)) / Math.Pow(sqrtZ, 3);
+
+            return (sqrtZ - Math.Sin(sqrtZ))
+                / (sqrtZ * sqrtZ * sqrtZ);
         }
-        else if (z < -1e-5)
-        {
-            double sqrtNz = Math.Sqrt(-z);
-            return (Math.Sinh(sqrtNz) - sqrtNz) / Math.Pow(sqrtNz, 3);
-        }
-        else
-        {
-            return 1.0 / 6.0 - z / 120.0 + (z * z) / 5040.0;
-        }
+
+        double sqrtNz = Math.Sqrt(-z);
+
+        if (sqrtNz > 700.0)
+            return double.PositiveInfinity;
+
+        return (Math.Sinh(sqrtNz) - sqrtNz)
+            / (sqrtNz * sqrtNz * sqrtNz);
     }
 
-    private double3 impossibleAnswer = new double3(math.NAN, math.NAN, math.NAN);
 
-    public (double3 v1, double3 v2) SolveLambert(double3 r1Vec, double3 r2Vec, double deltaT, double mu, string direction = "prograde")
+    // ------------------------------------------------------------
+    // TIME OF FLIGHT CALCULATION
+    // ------------------------------------------------------------
+
+    // Returns false if psi produces an invalid solution.
+
+    private static bool TryCalculateTime(
+        double psi,
+        double r1,
+        double r2,
+        double A,
+        double mu,
+        out double y,
+        out double calculatedTime)
     {
-        double r1 = math.length(r1Vec);
-        double r2 = math.length(r2Vec);
+        y = double.NaN;
+        calculatedTime = double.NaN;
 
-        double cosDeltaTheta = Dot(r1Vec, r2Vec) / (r1 * r2);
-        cosDeltaTheta = Math.Clamp(cosDeltaTheta, -1.0, 1.0);
+        double c2 = StumpffC(psi);
+        double c3 = StumpffS(psi);
 
-        double3 crossProd = Cross(r1Vec, r2Vec);
-        double crossProdZ = crossProd.z;
+        if (!IsFinite(c2) || !IsFinite(c3) || c2 <= 0.0)
+            return false;
 
-        double deltaTheta;
-        if (direction.Equals("prograde", StringComparison.OrdinalIgnoreCase))
+        y = r1 + r2
+            + A * (psi * c3 - 1.0) / Math.Sqrt(c2);
+
+        if (!IsFinite(y) || y < 0.0)
+            return false;
+
+        double x = Math.Sqrt(y / c2);
+
+        calculatedTime =
+            (x * x * x * c3 + A * Math.Sqrt(y))
+            / Math.Sqrt(mu);
+
+        return IsFinite(calculatedTime) && calculatedTime >= 0.0;
+    }
+
+
+    // ------------------------------------------------------------
+    // BRACKETING
+    // ------------------------------------------------------------
+
+    // Walks psi from lo to hi in `samples` steps looking for two neighbouring samples whose time of flight
+    // lies either side of deltaT. Time of flight rises with psi wherever the solution is valid, so a sign
+    // change between two valid neighbours means the root is between them.
+    //
+    // Used to scan 8192 samples, which made every Lambert call cost thousands of Stumpff evaluations and,
+    // because the optimizer calls it tens of thousands of times (twice per evaluation on a one-flyby
+    // mission), froze multi-leg planning. A coarse scan is enough, the only thing it can step over is the
+    // sliver between the edge of the valid region (where y goes negative and the time of flight falls to 0)
+    // and the first valid sample, so when the scan crosses that edge it is bisected out explicitly.
+    private static bool ScanForBracket(
+        double lo, double hi, int samples,
+        double r1, double r2, double A, double mu, double deltaT, double tolerance,
+        out double psiLow, out double psiUp)
+    {
+        psiLow = 0.0;
+        psiUp = 0.0;
+
+        double previousPsi = 0.0;
+        double previousTime = 0.0;
+        double lastInvalidPsi = lo;
+        bool previousValid = false;
+
+        for (int i = 0; i <= samples; i++)
         {
-            if (crossProdZ >= 0)
-                deltaTheta = Math.Acos(cosDeltaTheta);
-            else
-                deltaTheta = 2.0 * Math.PI - Math.Acos(cosDeltaTheta);
-        }
-        else
-        {
-            if (crossProdZ < 0)
-                deltaTheta = Math.Acos(cosDeltaTheta);
-            else
-                deltaTheta = 2.0 * Math.PI - Math.Acos(cosDeltaTheta);
-        }
+            double psi = lo + ((double)i / samples) * (hi - lo);
 
-        double A = Math.Sin(deltaTheta) * Math.Sqrt((r1 * r2) / (1.0 - cosDeltaTheta));
-
-        if (A == 0.0 && Math.Abs(deltaTheta - Math.PI) < 1e-8)
-        {
-            showWarning.dispalyNotif(0, "Error solving Lambert's problem:\nTransfer is 180 deg (straight line). Infinite orbital planes fit this path.");
-            return(impossibleAnswer, impossibleAnswer);
-        }
-
-        double psi = 0.0;
-        double psiUp = 4.0 * Math.PI * Math.PI;
-        double psiLow = -4.0 * Math.PI;
-        double tolerance = 1e-6;
-        int maxIterations = 200;
-        bool converged = false;
-        double y = 0.0;
-
-        for (int i = 0; i < maxIterations; i++)
-        {
-            double c2 = StumpffC(psi);
-            double c3 = StumpffS(psi);
-
-            if (c2 > 1e-5)
-                y = r1 + r2 + A * (psi * c3 - 1.0) / Math.Sqrt(c2);
-            else
-                y = r1 + r2;
-
-            if (A > 0.0 && y < 0.0)
+            if (!TryCalculateTime(psi, r1, r2, A, mu, out _, out double time))
             {
-                psiLow = psi;
-                psi = 0.5 * (psi + psiUp);
+                previousValid = false;
+                lastInvalidPsi = psi;
                 continue;
             }
 
-            double x = Math.Sqrt(y / c2);
-            double tComputed = (Math.Pow(x, 3) * c3 + A * Math.Sqrt(y)) / Math.Sqrt(mu);
+            double difference = time - deltaT;
 
-            if (Math.Abs(tComputed - deltaT) < tolerance)
+            if (Math.Abs(difference) <= tolerance)
+            {
+                psiLow = psi;
+                psiUp = psi;
+                return true;
+            }
+
+            if (!previousValid && i > 0)
+            {
+                // the previous sample was invalid and this one is valid, so the edge of the valid region is
+                // between them. Find it and use it as the "previous" sample, its time of flight is ~0.
+                double bad = lastInvalidPsi;
+                double good = psi;
+                for (int k = 0; k < 50; k++)
+                {
+                    double mid = 0.5 * (bad + good);
+                    if (TryCalculateTime(mid, r1, r2, A, mu, out _, out _)) good = mid;
+                    else bad = mid;
+                }
+
+                if (TryCalculateTime(good, r1, r2, A, mu, out _, out double edgeTime))
+                {
+                    previousPsi = good;
+                    previousTime = edgeTime;
+                    previousValid = true;
+                }
+            }
+
+            if (previousValid)
+            {
+                double previousDifference = previousTime - deltaT;
+
+                if ((previousDifference < 0.0 && difference > 0.0) ||
+                    (previousDifference > 0.0 && difference < 0.0))
+                {
+                    psiLow = previousPsi;
+                    psiUp = psi;
+                    return true;
+                }
+            }
+
+            previousPsi = psi;
+            previousTime = time;
+            previousValid = true;
+        }
+
+        return false;
+    }
+
+
+    // ------------------------------------------------------------
+    // LAMBERT SOLVER
+    // ------------------------------------------------------------
+
+    // Same as SolveLambert but never shows a UI warning, it reports the reason in `error` instead.
+    // This is the one the optimizer has to use: a search throws thousands of unsolvable candidates at the
+    // solver (e.g. a time of flight that is too short for the distance), and popping a notification for
+    // every one of them floods the UI and stalls the game.
+    // Returns true with v1 / v2 filled in, or false with both set to NaN and `error` describing why.
+    public bool TrySolveLambert(
+        double3 r1Vec,
+        double3 r2Vec,
+        double deltaT,
+        double mu,
+        string direction,
+        out double3 v1Vec,
+        out double3 v2Vec,
+        out string error)
+    {
+        v1Vec = impossibleAnswer;
+        v2Vec = impossibleAnswer;
+        error = null;
+
+        // --------------------------------------------------------
+        // 1. INPUT VALIDATION
+        // --------------------------------------------------------
+
+        if (!IsValidVector(r1Vec) ||
+            !IsValidVector(r2Vec) ||
+            !IsFinite(deltaT) ||
+            !IsFinite(mu) ||
+            deltaT <= 0.0 ||
+            mu <= 0.0)
+        {
+            error = "Invalid Lambert solver input.";
+            return false;
+        }
+
+        if (direction == null ||
+            (!direction.Equals("prograde", StringComparison.OrdinalIgnoreCase) &&
+             !direction.Equals("retrograde", StringComparison.OrdinalIgnoreCase)))
+        {
+            error = "Invalid Lambert direction. Use prograde or retrograde.";
+            return false;
+        }
+
+        double r1 = math.length(r1Vec);
+        double r2 = math.length(r2Vec);
+
+        if (!IsFinite(r1) || !IsFinite(r2) ||
+            r1 <= 1e-12 || r2 <= 1e-12)
+        {
+            error = "Invalid position vectors supplied to Lambert solver.";
+            return false;
+        }
+
+
+        // --------------------------------------------------------
+        // 2. TRANSFER ANGLE
+        // --------------------------------------------------------
+
+        double cosDeltaTheta = Dot(r1Vec, r2Vec) / (r1 * r2);
+
+        cosDeltaTheta = Math.Clamp(
+            cosDeltaTheta, -1.0, 1.0
+        );
+
+        double3 crossProd = Cross(r1Vec, r2Vec);
+
+        double crossProdZ = crossProd.z;
+
+        double shortAngle = Math.Acos(cosDeltaTheta);
+
+        double deltaTheta;
+
+        if (direction.Equals(
+            "prograde", StringComparison.OrdinalIgnoreCase))
+        {
+            deltaTheta = crossProdZ >= 0.0
+                ? shortAngle
+                : 2.0 * Math.PI - shortAngle;
+        }
+        else
+        {
+            deltaTheta = crossProdZ < 0.0
+                ? shortAngle
+                : 2.0 * Math.PI - shortAngle;
+        }
+
+
+        // --------------------------------------------------------
+        // 3. CHECK DEGENERATE GEOMETRY
+        // --------------------------------------------------------
+
+        double sinDeltaTheta = Math.Sin(deltaTheta);
+
+        if (Math.Abs(sinDeltaTheta) < 1e-10)
+        {
+            error = "Error solving Lambert's problem:\n" +
+                    "Transfer geometry is degenerate or approximately 180 degrees.";
+            return false;
+        }
+
+        double denominator = 1.0 - cosDeltaTheta;
+
+        if (denominator <= 1e-12)
+        {
+            error = "Error solving Lambert's problem:\n" +
+                    "Initial and final position vectors are too similar.";
+            return false;
+        }
+
+        double A = sinDeltaTheta *
+            Math.Sqrt((r1 * r2) / denominator);
+
+        if (!IsFinite(A) || Math.Abs(A) < 1e-12)
+        {
+            error = "Invalid Lambert transfer geometry.";
+            return false;
+        }
+
+
+        // --------------------------------------------------------
+        // 4. FIND A VALID PSI BRACKET
+        // --------------------------------------------------------
+
+        const int maxBracketExpansions = 5;
+        const int samplesPerSegment = 256;
+
+        double psiLow = 0.0;
+        double psiUp = 0.0;
+
+        bool bracketFound = false;
+
+        double tolerance = Math.Max(1e-6, deltaT * 1e-10);
+
+        // The upper limit stays below 4*pi^2.
+        // This is the zero-revolution branch.
+
+        double upperLimit =
+            4.0 * Math.PI * Math.PI - 1e-7;
+
+        double segmentLow = -4.0 * Math.PI * Math.PI;
+        double segmentHigh = upperLimit;
+
+        // Time of flight rises with psi, so if the root isn't in a segment it is further down (more
+        // hyperbolic). Each expansion only scans the newly added stretch below the previous one.
+        for (int expansion = 0;
+             expansion < maxBracketExpansions;
+             expansion++)
+        {
+            if (ScanForBracket(
+                segmentLow, segmentHigh, samplesPerSegment,
+                r1, r2, A, mu, deltaT, tolerance,
+                out psiLow, out psiUp))
+            {
+                bracketFound = true;
+                break;
+            }
+
+            // Expand the hyperbolic (negative psi) search range.
+
+            segmentHigh = segmentLow;
+            segmentLow *= 2.0;
+        }
+
+        if (!bracketFound)
+        {
+            error = "Error solving Lambert's problem:\n" +
+                    "Could not find a valid time-of-flight bracket.";
+            return false;
+        }
+
+
+        // --------------------------------------------------------
+        // 5. SAFEGUARDED BISECTION
+        // --------------------------------------------------------
+
+        double psi = 0.5 * (psiLow + psiUp);
+
+        double yFinal = 0.0;
+
+        bool converged = false;
+
+        const int maxIterations = 300;
+
+        for (int i = 0; i < maxIterations; i++)
+        {
+            psi = 0.5 * (psiLow + psiUp);
+
+            if (!TryCalculateTime(
+                psi, r1, r2, A, mu,
+                out double y,
+                out double calculatedTime))
+            {
+                // Invalid y occurs at the boundary of the
+                // physically valid zero-revolution branch.
+
+                if (A > 0.0)
+                    psiLow = psi;
+                else
+                    psiUp = psi;
+
+                continue;
+            }
+
+            yFinal = y;
+
+            double timeError = calculatedTime - deltaT;
+
+            if (Math.Abs(timeError) <= tolerance)
             {
                 converged = true;
                 break;
             }
 
-            double eps = 1e-5;
-            double c2Eps = StumpffC(psi + eps);
-            double c3Eps = StumpffS(psi + eps);
-            double yEps = (c2Eps > 0) ? r1 + r2 + A * ((psi + eps) * c3Eps - 1.0) / Math.Sqrt(c2Eps) : r1 + r2;
-            double xEps = (c2Eps > 0) ? Math.Sqrt(yEps / c2Eps) : 0;
-            double tEps = (xEps * xEps * xEps * c3Eps + A * Math.Sqrt(yEps)) / Math.Sqrt(mu);
-            double dtDpsi = (tEps - tComputed) / eps;
-
-            if (tComputed <= deltaT)
+            if (timeError < 0.0)
                 psiLow = psi;
             else
                 psiUp = psi;
 
-            if (Math.Abs(dtDpsi) > 1e-10)
-                psi = psi - (tComputed - deltaT) / dtDpsi;
-            else
-                psi = 0.5 * (psiLow + psiUp);
-
-            if (psi < psiLow || psi > psiUp)
-                psi = 0.5 * (psiLow + psiUp);
+            if (Math.Abs(psiUp - psiLow) < 1e-13)
+                break;
         }
 
         if (!converged)
         {
-            //showWarning.dispalyNotif(0, $"Error solving Lambert's problem:\nLambert algorithm failed to converge.");
-            return (impossibleAnswer, impossibleAnswer);
+            error = "Error solving Lambert's problem:\n" +
+                    "Solver failed to converge.";
+            return false;
         }
 
-        double f = 1.0 - y / r1;
-        double g = A * Math.Sqrt(y / mu);
-        double gDot = 1.0 - y / r2;
 
-        double3 v1Vec = (r2Vec - f * r1Vec) / g;
-        double3 v2Vec = (gDot * r2Vec - r1Vec) / g;
+        // --------------------------------------------------------
+        // 6. RECONSTRUCT DEPARTURE AND ARRIVAL VELOCITIES
+        // --------------------------------------------------------
 
-        return (v1Vec, v2Vec);
+        double f = 1.0 - yFinal / r1;
+
+        double g = A * Math.Sqrt(yFinal / mu);
+
+        double gDot = 1.0 - yFinal / r2;
+
+        if (!IsFinite(g) || Math.Abs(g) < 1e-12)
+        {
+            error = "Error solving Lambert's problem:\n" +
+                    "Lagrange g coefficient is approximately zero.";
+            return false;
+        }
+
+        double3 v1Candidate =
+            (r2Vec - f * r1Vec) / g;
+
+        double3 v2Candidate =
+            (gDot * r2Vec - r1Vec) / g;
+
+        if (!IsValidVector(v1Candidate) || !IsValidVector(v2Candidate))
+        {
+            error = "Error solving Lambert's problem:\n" +
+                    "Calculated velocities are invalid.";
+            return false;
+        }
+
+        v1Vec = v1Candidate;
+        v2Vec = v2Candidate;
+        return true;
+    }
+
+    // Original entry point, same behaviour as before: shows a UI warning and returns NaN vectors on failure.
+    // Use TrySolveLambert from anything that calls the solver in bulk.
+    public (double3 v1, double3 v2) SolveLambert(
+        double3 r1Vec,
+        double3 r2Vec,
+        double deltaT,
+        double mu,
+        string direction = "prograde")
+    {
+        if (TrySolveLambert(r1Vec, r2Vec, deltaT, mu, direction,
+                out double3 v1, out double3 v2, out string error))
+        {
+            return (v1, v2);
+        }
+
+        showWarning.dispalyNotif(0, error);
+        return (impossibleAnswer, impossibleAnswer);
     }
 }

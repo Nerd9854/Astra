@@ -34,6 +34,10 @@ public struct IAS15Job : IJob
 {
     const double Tiny = 1e-300;
 
+    // closer than this to a burn's end counts as finished, has to be above the float spacing of t
+    // (about 1e-7 s at t ~ 1e9 s) or a step that lands "exactly" on the end could miss it
+    const double BurnEndTolerance = 1e-6;
+
     // indices into `stats`
     public const int StatIter = 0;      // iterations used by the last step
     public const int StatBad = 1;       // index of first body with NaN/Inf acceleration, or -1
@@ -47,6 +51,9 @@ public struct IAS15Job : IJob
     public int maxIterations;
     public int refreshAcc;
     public double targetAcc, convergenceTol, safetyF, minH, maxH, minHChange, maxHChange;
+
+    // sim time to land on exactly, no step is taken past it, double.MaxValue = no stop
+    public double stopTime;
 
     [ReadOnly] public NativeArray<double> ratios;   // 7 Gauss-Radau nodes
     [ReadOnly] public NativeArray<double> invV;     // inverse Vandermonde, 7x7 row-major
@@ -78,7 +85,8 @@ public struct IAS15Job : IJob
         // outside changed the state (init, addSpacecraft, commandBurn, external pos/vel writes).
         if (refreshAcc != 0) ComputeAccFromPos(t);
 
-        for (int s = 0; s < steps && stats[StatBad] < 0; s++)
+        // stops once stopTime is reached so a multi-step call can't run past it
+        for (int s = 0; s < steps && stats[StatBad] < 0 && t < stopTime - 1e-3; s++)
         {
             Step(ref t, ref h);
             stats[StatSteps] = s + 1;
@@ -90,6 +98,28 @@ public struct IAS15Job : IJob
 
     void Step(ref double t, ref double h)
     {
+        // The thrust is only sampled at the 7 nodes inside a step, so a step much longer than a burn can
+        // miss it completely (every node lands after the burn ends). Keep h small enough to resolve any
+        // active burn, never let a step cross a burn's end, and land exactly on stopTime.
+        double hCap = h;
+        for (int i = 0; i < n; i++)
+        {
+            BurnState b = burn[i];
+            if (b.active == 0) continue;
+
+            hCap = math.min(hCap, b.duration / 20.0);
+            double remaining = b.startTime + b.duration - t;
+            if (remaining > BurnEndTolerance) hCap = math.min(hCap, remaining);
+        }
+        hCap = math.min(hCap, stopTime - t);
+
+        if (hCap < h)
+        {
+            double q0 = hCap / h;
+            for (int i = 0; i < n; i++) RescalePoly(i, q0);
+            h = hCap;
+        }
+
         // a0 doesn't change during the iterations, so this only needs doing once per step
         double maxAcc = Tiny;
         for (int i = 0; i < n; i++) maxAcc = math.max(maxAcc, math.cmax(math.abs(a0[i])));
@@ -162,7 +192,7 @@ public struct IAS15Job : IJob
         for (int i = 0; i < n; i++)
         {
             BurnState b = burn[i];
-            if (b.active != 0 && newT >= b.startTime + b.duration)
+            if (b.active != 0 && newT >= b.startTime + b.duration - BurnEndTolerance)
             {
                 b.active = 0;
                 burn[i] = b;
@@ -383,6 +413,9 @@ public class PhysicsManager : MonoBehaviour
     public double minH = 1e-8;
     public double maxH = 100;
 
+    [Tooltip("Integrator lands exactly on this sim time and never steps past it. double.MaxValue = no stop.")]
+    public double stopTime = double.MaxValue;
+
     [Tooltip("Integrator steps per physicsUpdate() call, all done inside one Burst call.")]
     public int stepsPerUpdate = 1;
 
@@ -402,6 +435,17 @@ public class PhysicsManager : MonoBehaviour
     }
 
     // ---- setup --------------------------------------------------------------------------
+
+    public void resetBody(physicsObject o, double3 newPos, double3 newVel)
+    {
+        int id = o.ID;
+        aPos[id] = newPos;
+        aVel[id] = newVel;
+        aPosLo[id] = double3.zero;
+        for (int k = 0; k < 7; k++) aPoly[id * 7 + k] = double3.zero;
+        aBurn[id] = default;   // cancels any burn in progress
+        accDirty = true;
+    }
 
     public void physicsInit(int lNumOfObjects)
     {
@@ -531,6 +575,7 @@ public class PhysicsManager : MonoBehaviour
             maxH = maxH,
             minHChange = minHChange,
             maxHChange = maxHChange,
+            stopTime = stopTime,
 
             ratios = aRatios,
             invV = aInvV,

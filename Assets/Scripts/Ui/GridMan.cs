@@ -36,7 +36,6 @@ public class GridMan : MonoBehaviour
 
 
         Shader.SetGlobalFloat(hideIndexID, (distThresh < math.length(modPos)) ? 1f : 0f);
-        Debug.Log((distThresh < math.length(modPos)));
 
         grid.transform.position = (float3)(modPos);
     }

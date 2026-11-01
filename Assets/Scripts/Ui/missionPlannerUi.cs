@@ -76,17 +76,6 @@ public class missionPlannerUi : MonoBehaviour
             int minDays = int.Parse(this.minDays.text);
             int maxDaysPerLeg = int.Parse(minDaysperLeg.text);
 
-            foreach (var item in dests)
-            {
-                Debug.Log(item);
-            }
-            foreach (var item in types)
-            {
-                Debug.Log(item);
-            }
-            Debug.Log(minDays);
-            Debug.Log(maxDaysPerLeg);
-
             if (minDays < 0)
             {
                 showWarning.dispalyNotif(0, "Minimum Days Per Leg is negative");
