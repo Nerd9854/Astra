@@ -1,6 +1,4 @@
-using Unity.Mathematics;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
 
 public class OrbitModeTester : MonoBehaviour
 {

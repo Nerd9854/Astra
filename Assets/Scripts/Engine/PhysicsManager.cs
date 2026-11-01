@@ -1,4 +1,3 @@
-using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Double;
 using Unity.Burst;
 using Unity.Collections;

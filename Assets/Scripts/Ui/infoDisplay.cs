@@ -1,14 +1,12 @@
 using System;
 using System.Collections;
 using System.Linq;
-using System.Threading.Tasks;
 using TMPro;
 using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
 using static OrbitViewer;
 using static PhysicsManager;
-using static UnityEngine.Rendering.DebugUI;
 
 public class infoDisplay : MonoBehaviour
 {
